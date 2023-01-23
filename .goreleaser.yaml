@@ -1,0 +1,46 @@
+project_name: httpcgi
+dockers:
+  - image_templates:
+    - ghcr.io/wtnb75/{{ .ProjectName }}:latest-amd64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Version }}-amd64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}-amd64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}-amd64
+    use: buildx
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+    - --platform=linux/amd64
+    - --label=org.opencontainers.image.version={{ .Version }}
+    - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+    - --label=org.opencontainers.image.revision={{ .FullCommit }}
+  - image_templates:
+    - ghcr.io/wtnb75/{{ .ProjectName }}:latest-arm64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Version }}-arm64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}-arm64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}-arm64
+    use: buildx
+    goos: linux
+    goarch: arm64
+    build_flag_templates:
+    - --platform=linux/arm64
+    - --label=org.opencontainers.image.version={{ .Version }}
+    - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+    - --label=org.opencontainers.image.revision={{ .FullCommit }}
+
+docker_manifests:
+  - name_template: ghcr.io/wtnb75/{{ .ProjectName }}:latest
+    image_templates:
+    - ghcr.io/wtnb75/{{ .ProjectName }}:latest-amd64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:latest-arm64
+  - name_template: ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Version }}
+    image_templates:
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Version }}-amd64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Version }}-arm64
+  - name_template: ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}
+    image_templates:
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}-amd64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}-arm64
+  - name_template: ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}
+    image_templates:
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}-amd64
+    - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}-arm64
