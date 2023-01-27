@@ -44,3 +44,5 @@ docker_manifests:
     image_templates:
     - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}-amd64
     - ghcr.io/wtnb75/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}-arm64
+changelog:
+  use: github-native
