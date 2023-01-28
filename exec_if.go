@@ -78,7 +78,7 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter, wg *sync.WaitGroup) e
 
 func splitPathInfo(basedir string, path string) (string, string, error) {
 	ret := path
-	for ret != "" && ret != "." {
+	for ret != "" && ret != "." && ret != "/" {
 		slog.Debug("check", "path", path, "basedir", basedir, "cur", ret)
 		if fi, err := os.Stat(filepath.Join(basedir, ret)); err == nil {
 			if fi.Mode().IsRegular() {
@@ -87,7 +87,8 @@ func splitPathInfo(basedir string, path string) (string, string, error) {
 		}
 		ret = filepath.Dir(ret)
 	}
-	return "", "", fmt.Errorf("not found")
+	slog.Warn("not found", "base", basedir, "path", path)
+	return "", "", fmt.Errorf("not found %s", path)
 }
 
 func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request) error {
