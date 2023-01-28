@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -58,10 +59,10 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter, wg *sync.WaitGroup) e
 			if n, err := fmt.Sscan(v, &statusCode); err != nil {
 				slog.Warn("status code error", "line", linestr)
 			} else {
-				slog.Info("new status", "n", n, "status", statusCode)
+				slog.Info("status code update", "n", n, "status", statusCode)
 			}
 		} else {
-			slog.Info("add-header", "key", k, "val", v)
+			slog.Debug("add-header", "key", k, "val", v)
 			w.Header().Add(k, v)
 		}
 	}
@@ -71,8 +72,23 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter, wg *sync.WaitGroup) e
 		slog.Error("write body error", err)
 		return err
 	}
-	slog.Info("write body", "length", olen)
+	slog.Debug("write body", "length", olen)
 	return nil
+}
+
+func splitPathInfo(basedir string, path string) (string, string, error) {
+	ret := path
+	for ret != "" && ret != "." && ret != "/" {
+		slog.Debug("check", "path", path, "basedir", basedir, "cur", ret)
+		if fi, err := os.Stat(filepath.Join(basedir, ret)); err == nil {
+			if fi.Mode().IsRegular() {
+				return ret, path[len(ret):], nil
+			}
+		}
+		ret = filepath.Dir(ret)
+	}
+	slog.Warn("not found", "base", basedir, "path", path)
+	return "", "", fmt.Errorf("not found %s", path)
 }
 
 func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request) error {
@@ -89,14 +105,19 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		)
 	}()
 	bn := strings.TrimPrefix(r.URL.Path, opts.Prefix)
-	fn := filepath.Join(opts.BaseDir, bn)
-	slog.Debug("path", "full-path", fn)
 	host, port, err := net.SplitHostPort(opts.Addr)
 	if err != nil {
 		slog.Error("split host port", err)
 		return err
 	}
 	slog.Debug("memo", "host", host, "port", port)
+	bn2, rest, err := splitPathInfo(opts.BaseDir, bn)
+	if err != nil {
+		slog.Error("not found", err, "basename", bn)
+		w.WriteHeader(http.StatusNotFound)
+		return err
+	}
+	slog.Debug("memo(path)", "bn", bn, "bn2", bn2, "rest", rest)
 	env := map[string]string{
 		"SERVER_SOFTWARE":   "httpcgi/1.0",
 		"SERVER_NAME":       host,
@@ -105,9 +126,9 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		"SERVER_PROTOCOL":   opts.Proto,
 		"SERVER_PORT":       port,
 		"REQUEST_METHOD":    r.Method,
-		"PATH_INFO":         "",
+		"PATH_INFO":         rest,
 		"PATH_TRANSLATED":   "",
-		"SCRIPT_NAME":       bn,
+		"SCRIPT_NAME":       bn2,
 		"QUERY_STRING":      r.URL.RawQuery,
 		"REMOTE_ADDR":       r.RemoteAddr,
 		"CONTENT_TYPE":      r.Header.Get("Content-Type"),
@@ -126,14 +147,15 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go OutputFilter(pr, w, &wg)
-	err = runner.Run(opts, bn, env, r.Body, pw, log.Writer())
+	err = runner.Run(opts, bn2, env, r.Body, pw, log.Writer())
 	if err != nil {
 		http_status = http.StatusInternalServerError
 		w.WriteHeader(http_status)
 		fmt.Fprintf(w, "command error: %s", err)
 	}
-	pr.Close()
+	pw.Close()
 	wg.Wait()
+	pr.Close()
 	return nil
 }
 
@@ -146,8 +168,6 @@ func DoPipe(input io.Reader, output io.Writer, wg *sync.WaitGroup) error {
 		slog.Error("pipe error:", err)
 		return err
 	}
-	if ilen != 0 {
-		slog.Info("pipe", "length", ilen)
-	}
+	slog.Debug("pipe", "length", ilen)
 	return nil
 }

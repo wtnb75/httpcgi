@@ -1,11 +1,10 @@
+use std::env;
+
 fn main() {
     println!("Content-Type: text/plain");
     println!("");
-    for i in 1..=3 {
-        println!("count-{}", i);
+    for (key, value) in env::vars(){
+        println!("{key}={value}");
     }
-
-    print!("aaa");
-    print!("bbb");
-    println!("(EOF)");
+    eprintln!("finished(stderr).");
 }

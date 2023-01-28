@@ -81,6 +81,7 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 	if err != nil {
 		slog.Error("wasi start", err)
 	}
+	slog.Debug("run wasi")
 	res, err := start()
 	if err != nil {
 		slog.Error("wasi function returns error", err)
@@ -93,9 +94,9 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 	go runner.pipeStderr(wasiEnv, stderr, &wg)
 	wg.Wait()
 	if res != nil {
-		slog.Info("wasi success", "res", res)
+		slog.Debug("wasi success", "res", res)
 	} else {
-		slog.Info("wasi success(empty)")
+		slog.Debug("wasi success(empty)")
 	}
 	return nil
 }
