@@ -33,7 +33,7 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	fn := filepath.Join(conf.BaseDir, cmdname)
 	slog.Debug("path", "full-path", fn)
 	cmd := exec.Command(fn)
-	slog.Info("pid", "process", cmd.Process)
+	slog.Debug("pid", "process", cmd.Process)
 	cmd_stdin, cmd_stdout, cmd_stderr, err := runner.getPipe(cmd)
 	if err != nil {
 		slog.Error("pipe error", err)
@@ -42,11 +42,11 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	for k, v := range envvar {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
-	slog.Info("starting command", "cmd", cmd)
+	slog.Debug("starting command", "cmd", cmd)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	slog.Info("pid", "process", cmd.Process)
+	slog.Debug("pid", "process", cmd.Process)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go DoPipe(stdin, cmd_stdin, &wg)
