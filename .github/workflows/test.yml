@@ -27,4 +27,4 @@ jobs:
         run: |
           go get github.com/johejo/go-cover-view
           go install github.com/johejo/go-cover-view
-          go-cover-view -output markdown -report cover.out > $GITHUB_STEP_SUMMARY
+          go-cover-view -output markdown -report cover.out >> $GITHUB_STEP_SUMMARY
