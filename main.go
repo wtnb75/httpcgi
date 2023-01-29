@@ -1,3 +1,4 @@
+// httpcgi: serve legacy CGI
 package main
 
 import (
@@ -21,7 +22,7 @@ func main() {
 	} else {
 		logopt = slog.HandlerOptions{}
 	}
-	if opts.JsonLog {
+	if opts.JSONLog {
 		lh := logopt.NewJSONHandler(os.Stdout)
 		slog.SetDefault(slog.New(lh))
 	} else {

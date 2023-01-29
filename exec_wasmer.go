@@ -2,7 +2,7 @@ package main
 
 import (
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -10,6 +10,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+// WasmerRunner implements CGI Runner execute by wasmer
 type WasmerRunner struct {
 }
 
@@ -43,9 +44,11 @@ func (runner *WasmerRunner) pipeStderr(wasiEnv *wasmer.WasiEnvironment, output i
 	return nil
 }
 
-func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[string]string, stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
+// Run implements Runner.Run
+func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[string]string,
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
 	fn := filepath.Join(conf.BaseDir, cmdname)
-	bytecode, err := ioutil.ReadFile(fn)
+	bytecode, err := os.ReadFile(fn)
 	if err != nil {
 		slog.Error("read bytecode", err, "filename", fn)
 		return err

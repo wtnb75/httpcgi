@@ -16,6 +16,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+// SrvConfig is configuration. set by argument parser
 type SrvConfig struct {
 	Verbose bool   `short:"v" long:"verbose"`
 	Addr    string `short:"l" long:"listen" default:"localhost:"`
@@ -23,14 +24,17 @@ type SrvConfig struct {
 	Prefix  string `short:"p" long:"prefix" default:"/"`
 	BaseDir string `short:"b" long:"base-dir"`
 	Suffix  string `short:"s" long:"suffix"`
-	JsonLog bool   `long:"json-log"`
+	JSONLog bool   `long:"json-log"`
 	Wasm    bool   `long:"wasm"`
 }
 
+// Runner is interface to run CGI
 type Runner interface {
-	Run(conf SrvConfig, cmdname string, envvar map[string]string, stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error
+	Run(conf SrvConfig, cmdname string, envvar map[string]string,
+		stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error
 }
 
+// OutputFilter converts CGI output to http.ResponseWriter
 func OutputFilter(stdout io.Reader, w http.ResponseWriter, wg *sync.WaitGroup) error {
 	if wg != nil {
 		defer wg.Done()
@@ -91,16 +95,17 @@ func splitPathInfo(basedir string, path string) (string, string, error) {
 	return "", "", fmt.Errorf("not found %s", path)
 }
 
+// RunBy executes HTTP request
 func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request) error {
 	startTime := time.Now()
-	http_status := http.StatusOK
+	httpStatus := http.StatusOK
 	defer func() {
 		slog.Info(
 			"access-log", "method", r.Method, "url", r.URL,
 			"remote-addr", r.RemoteAddr,
 			"proto", r.Proto,
 			"user-agent", r.UserAgent(),
-			"status", http_status,
+			"status", httpStatus,
 			"elapsed", time.Since(startTime),
 		)
 	}()
@@ -149,8 +154,8 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	go OutputFilter(pr, w, &wg)
 	err = runner.Run(opts, bn2, env, r.Body, pw, log.Writer())
 	if err != nil {
-		http_status = http.StatusInternalServerError
-		w.WriteHeader(http_status)
+		httpStatus = http.StatusInternalServerError
+		w.WriteHeader(httpStatus)
 		fmt.Fprintf(w, "command error: %s", err)
 	}
 	pw.Close()
@@ -159,6 +164,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	return nil
 }
 
+// DoPipe calls io.Copy() and wg.Done()
 func DoPipe(input io.Reader, output io.Writer, wg *sync.WaitGroup) error {
 	if wg != nil {
 		defer wg.Done()

@@ -11,6 +11,7 @@ import (
 )
 
 func TestSplit(t *testing.T) {
+	t.Parallel()
 	name, pathinfo, err := splitPathInfo(".", "exec_if_test.go/hello/world")
 	if err != nil {
 		t.Errorf("error: %s", err)
@@ -24,6 +25,7 @@ func TestSplit(t *testing.T) {
 }
 
 func TestSplitNotFound(t *testing.T) {
+	t.Parallel()
 	name, pathinfo, err := splitPathInfo(".", "xyz/hello/world")
 	if err == nil {
 		t.Errorf("found: name=%s, pathinfo=%s", name, pathinfo)
@@ -31,6 +33,7 @@ func TestSplitNotFound(t *testing.T) {
 }
 
 func TestDoPipeWriteClose(t *testing.T) {
+	t.Parallel()
 	rd, wr := io.Pipe()
 	var wg sync.WaitGroup
 	wr.Close()
@@ -43,6 +46,7 @@ func TestDoPipeWriteClose(t *testing.T) {
 }
 
 func TestDoPipeReadClose(t *testing.T) {
+	t.Parallel()
 	rd, wr := io.Pipe()
 	var wg sync.WaitGroup
 	rd.Close()
@@ -60,7 +64,8 @@ type writer struct {
 	out *bytes.Buffer
 }
 
-func (runner runner1) Run(conf SrvConfig, cmdname string, envvar map[string]string, stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
+func (runner runner1) Run(conf SrvConfig, cmdname string, envvar map[string]string,
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
 	fmt.Fprintln(stdout, "Status: 200")
 	fmt.Fprintln(stdout, "Content-Type: application/json")
 	fmt.Fprintln(stdout, "")
@@ -68,7 +73,8 @@ func (runner runner1) Run(conf SrvConfig, cmdname string, envvar map[string]stri
 	return nil
 }
 
-func (runner runner2) Run(conf SrvConfig, cmdname string, envvar map[string]string, stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
+func (runner runner2) Run(conf SrvConfig, cmdname string, envvar map[string]string,
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
 	fmt.Fprintln(stdout, "Status: 500")
 	fmt.Fprintln(stdout, "Content-Type: application/json")
 	fmt.Fprintln(stdout, "")
@@ -89,6 +95,7 @@ func (w writer) WriteHeader(statusCode int) {
 }
 
 func TestRunBy(t *testing.T) {
+	t.Parallel()
 	opts := SrvConfig{Addr: ":9999", BaseDir: "."}
 	runner := runner1{}
 	bio := bytes.NewBufferString("")
@@ -97,7 +104,7 @@ func TestRunBy(t *testing.T) {
 	}
 	u, _ := url.Parse("htt://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
 	r := http.Request{
-		Method:     "GET",
+		Method:     http.MethodGet,
 		RemoteAddr: "127.0.0.1:9999",
 		URL:        u,
 		Proto:      "tcp",
@@ -115,6 +122,7 @@ func TestRunBy(t *testing.T) {
 }
 
 func TestRunByStatusCode(t *testing.T) {
+	t.Parallel()
 	opts := SrvConfig{Addr: ":9999", BaseDir: "."}
 	runner := runner2{}
 	bio := bytes.NewBufferString("")
@@ -123,7 +131,7 @@ func TestRunByStatusCode(t *testing.T) {
 	}
 	u, _ := url.Parse("htt://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
 	r := http.Request{
-		Method:     "GET",
+		Method:     http.MethodGet,
 		RemoteAddr: "127.0.0.1:9999",
 		URL:        u,
 		Proto:      "tcp",
