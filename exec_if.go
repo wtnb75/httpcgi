@@ -80,13 +80,15 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter, wg *sync.WaitGroup) e
 	return nil
 }
 
-func splitPathInfo(basedir string, path string) (string, string, error) {
+func splitPathInfo(basedir string, path string, suffix string) (string, string, error) {
 	ret := path
 	for ret != "" && ret != "." && ret != "/" {
 		slog.Debug("check", "path", path, "basedir", basedir, "cur", ret)
-		if fi, err := os.Stat(filepath.Join(basedir, ret)); err == nil {
-			if fi.Mode().IsRegular() {
-				return ret, path[len(ret):], nil
+		if strings.HasSuffix(ret, suffix) {
+			if fi, err := os.Stat(filepath.Join(basedir, ret)); err == nil {
+				if fi.Mode().IsRegular() {
+					return ret, path[len(ret):], nil
+				}
 			}
 		}
 		ret = filepath.Dir(ret)
@@ -116,7 +118,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		return err
 	}
 	slog.Debug("memo", "host", host, "port", port)
-	bn2, rest, err := splitPathInfo(opts.BaseDir, bn)
+	bn2, rest, err := splitPathInfo(opts.BaseDir, bn, opts.Suffix)
 	if err != nil {
 		slog.Error("not found", err, "basename", bn)
 		w.WriteHeader(http.StatusNotFound)

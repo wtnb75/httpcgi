@@ -12,7 +12,7 @@ import (
 
 func TestSplit(t *testing.T) {
 	t.Parallel()
-	name, pathinfo, err := splitPathInfo(".", "exec_if_test.go/hello/world")
+	name, pathinfo, err := splitPathInfo(".", "exec_if_test.go/hello/world", ".go")
 	if err != nil {
 		t.Errorf("error: %s", err)
 	}
@@ -26,7 +26,15 @@ func TestSplit(t *testing.T) {
 
 func TestSplitNotFound(t *testing.T) {
 	t.Parallel()
-	name, pathinfo, err := splitPathInfo(".", "xyz/hello/world")
+	name, pathinfo, err := splitPathInfo(".", "xyz/hello/world", "")
+	if err == nil {
+		t.Errorf("found: name=%s, pathinfo=%s", name, pathinfo)
+	}
+}
+
+func TestSplitSuffix(t *testing.T) {
+	t.Parallel()
+	name, pathinfo, err := splitPathInfo(".", "exec_if_test.go/hello/world", ".ext")
 	if err == nil {
 		t.Errorf("found: name=%s, pathinfo=%s", name, pathinfo)
 	}
