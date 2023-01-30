@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"github.com/jessevdk/go-flags"
 	"golang.org/x/exp/slog"
@@ -13,6 +14,7 @@ import (
 
 var opts SrvConfig
 var runner Runner
+var runnerMap map[string]interface{} = map[string]interface{}{}
 
 func main() {
 	args, err := flags.ParseArgs(&opts, os.Args)
@@ -34,11 +36,13 @@ func main() {
 		slog.Error("flag parse", err)
 		return
 	}
-	if opts.Wasm {
-		runner = &WasmerRunner{}
-	} else {
-		runner = &OsRunner{}
+	runnerFn, ok := runnerMap[opts.Runner]
+	if !ok {
+		slog.Warn("unknown runner", "runner", opts.Runner, "available", reflect.ValueOf(runnerMap).MapKeys())
+		return
 	}
+	runner = runnerFn.(func(SrvConfig) Runner)(opts)
+	slog.Info("runner", "name", opts.Runner, "type", reflect.TypeOf(runner), "val", runner)
 	if opts.BaseDir == "" {
 		opts.BaseDir, err = os.Getwd()
 		if err != nil {
