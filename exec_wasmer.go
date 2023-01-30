@@ -1,3 +1,6 @@
+//go:build wasmer
+// +build wasmer
+
 package main
 
 import (
@@ -70,6 +73,7 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 		slog.Error("wasmer module", err)
 		return err
 	}
+	slog.Debug("wasi", "version", wasmer.GetWasiVersion(module).String())
 	importObj, err := wasiEnv.GenerateImportObject(store, module)
 	if err != nil {
 		slog.Error("import object", err)
@@ -102,4 +106,10 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 		slog.Debug("wasi success(empty)")
 	}
 	return nil
+}
+
+func init() {
+	runnerMap["wasmer"] = func(SrvConfig) Runner {
+		return &WasmerRunner{}
+	}
 }

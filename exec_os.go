@@ -63,3 +63,9 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	cmdStderr.Close()
 	return nil
 }
+
+func init() {
+	runnerMap["os"] = func(SrvConfig) Runner {
+		return &OsRunner{}
+	}
+}

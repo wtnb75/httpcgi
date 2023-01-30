@@ -22,10 +22,10 @@ type SrvConfig struct {
 	Addr    string `short:"l" long:"listen" default:"localhost:"`
 	Proto   string `long:"protocol" default:"tcp"`
 	Prefix  string `short:"p" long:"prefix" default:"/"`
-	BaseDir string `short:"b" long:"base-dir"`
+	BaseDir string `short:"b" long:"base-dir" default:"."`
 	Suffix  string `short:"s" long:"suffix"`
 	JSONLog bool   `long:"json-log"`
-	Wasm    bool   `long:"wasm"`
+	Runner  string `long:"runner" default:"os"`
 }
 
 // Runner is interface to run CGI
