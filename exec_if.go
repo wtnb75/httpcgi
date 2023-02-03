@@ -33,6 +33,7 @@ type SrvConfig struct {
 type Runner interface {
 	Run(conf SrvConfig, cmdname string, envvar map[string]string,
 		stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error
+	Exists(conf SrvConfig, path string) (string, string, error)
 }
 
 // OutputFilter converts CGI output to http.ResponseWriter
@@ -119,7 +120,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		return err
 	}
 	slog.Debug("memo", "host", host, "port", port)
-	bn2, rest, err := splitPathInfo(opts.BaseDir, bn, opts.Suffix)
+	bn2, rest, err := runner.Exists(opts, bn)
 	if err != nil {
 		slog.Error("not found", err, "basename", bn)
 		w.WriteHeader(http.StatusNotFound)

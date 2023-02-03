@@ -108,6 +108,10 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 	return nil
 }
 
+func (runner WasmerRunner) Exists(conf SrvConfig, path string) (string, string, error) {
+	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
+}
+
 func init() {
 	runnerMap["wasmer"] = func(SrvConfig) Runner {
 		return &WasmerRunner{}

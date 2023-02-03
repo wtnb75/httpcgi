@@ -76,6 +76,10 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	return nil
 }
 
+func (runner OsRunner) Exists(conf SrvConfig, path string) (string, string, error) {
+	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
+}
+
 func init() {
 	runnerMap["os"] = func(SrvConfig) Runner {
 		return &OsRunner{}

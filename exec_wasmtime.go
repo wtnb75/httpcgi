@@ -112,6 +112,10 @@ func (runner WasmtimeRunner) Run(conf SrvConfig, cmdname string, envvar map[stri
 	return nil
 }
 
+func (runner WasmtimeRunner) Exists(conf SrvConfig, path string) (string, string, error) {
+	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
+}
+
 func init() {
 	runnerMap["wasmtime"] = func(SrvConfig) Runner {
 		return WasmtimeRunner{}
