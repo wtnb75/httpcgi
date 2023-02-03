@@ -26,17 +26,18 @@ Usage:
   httpcgi [OPTIONS]
 
 Application Options:
-  -v, --verbose
-  -l, --listen=
-      --protocol=
-  -p, --prefix=
-  -b, --base-dir=
-  -s, --suffix=
+  -v, --verbose               log verbose
+  -q, --quiet                 log quiet
+  -l, --listen=[host]:port
+      --protocol=tcp/unix
+  -p, --prefix=url-prefix
+  -b, --base-dir=dirname
+  -s, --suffix=.ext
       --json-log
-      --runner=
+      --runner=name
 
 Help Options:
-  -h, --help      Show this help message
+  -h, --help                  Show this help message
 ```
 
 ## docker
