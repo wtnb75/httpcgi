@@ -90,6 +90,14 @@ func (runner runner2) Run(conf SrvConfig, cmdname string, envvar map[string]stri
 	return nil
 }
 
+func (runner runner1) Exists(conf SrvConfig, path string) (string, string, error) {
+	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
+}
+
+func (runner runner2) Exists(conf SrvConfig, path string) (string, string, error) {
+	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
+}
+
 func (w writer) Header() http.Header {
 	return http.Header{}
 }
