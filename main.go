@@ -21,6 +21,8 @@ func main() {
 	var logopt slog.HandlerOptions
 	if opts.Verbose {
 		logopt = slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true}
+	} else if opts.Quiet {
+		logopt = slog.HandlerOptions{Level: slog.LevelWarn}
 	} else {
 		logopt = slog.HandlerOptions{}
 	}
@@ -33,7 +35,6 @@ func main() {
 	}
 	slog.Debug("start0", "args", args, "opts", opts)
 	if err != nil {
-		slog.Error("flag parse", err)
 		return
 	}
 	runnerFn, ok := runnerMap[opts.Runner]

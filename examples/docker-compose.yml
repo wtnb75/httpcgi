@@ -1,0 +1,39 @@
+version: "3"
+
+services:
+    top:
+        image: traefik:v2.5
+        command:
+            - "--providers.docker=true"
+            - "--entrypoints.web.address=:80"
+            - "--accesslog=true"
+        ports:
+            - "80:80"
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    static:
+        # http://localhost/hello.rs
+        image: nginx:alpine
+        volumes:
+            - "./file/static:/usr/share/nginx/html:ro"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.services.static.loadbalancer.server.port=80"
+            - "traefik.http.routers.static.rule=PathPrefix(`/`)"
+            - "traefik.http.routers.static.entrypoints=web"
+    cgi:
+        # http://localhost/cgi-bin/hello
+        image: ghcr.io/wtnb75/httpcgi:latest
+        volumes:
+            - "./file/cgi:/work:ro"
+        working_dir: /work
+        command:
+            - "-l"
+            - ":8080"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.services.cgi.loadbalancer.server.port=8080"
+            - "traefik.http.routers.cgi.rule=PathPrefix(`/cgi-bin`)"
+            - "traefik.http.middlewares.cgi.stripprefix.prefixes=/cgi-bin"
+            - "traefik.http.routers.cgi.entrypoints=web"
+            - "traefik.http.routers.cgi.middlewares=cgi"
