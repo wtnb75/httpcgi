@@ -53,11 +53,23 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	slog.Debug("pid", "process", cmd.Process)
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go DoPipe(stdin, cmdStdin, &wg)
+	go func() {
+		if err := DoPipe(stdin, cmdStdin, &wg); err != nil {
+			slog.Error("stdin", err)
+		}
+	}()
 	wg.Add(1)
-	go DoPipe(cmdStderr, stderr, &wg)
+	go func() {
+		if err := DoPipe(cmdStderr, stderr, &wg); err != nil {
+			slog.Error("stderr", err)
+		}
+	}()
 	wg.Add(1)
-	go DoPipe(cmdStdout, stdout, &wg)
+	go func() {
+		if err := DoPipe(cmdStdout, stdout, &wg); err != nil {
+			slog.Error("stdout", err)
+		}
+	}()
 	wg.Wait()
 	cmdStdin.Close()
 	cmdStderr.Close()

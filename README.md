@@ -13,7 +13,7 @@
 - go install github.com/wtnb75/httpcgi@latest
 - supports WASI
     - with wasmer runtime: go install -tags wasmer github.com/wtnb75/httpcgi@latest
-    - with wasmtime runtime: go install -tags wasmer github.com/wtnb75/httpcgi@latest
+    - with wasmtime runtime: go install -tags wasmtime github.com/wtnb75/httpcgi@latest
 
 ## run
 
