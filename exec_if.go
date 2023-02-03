@@ -154,7 +154,11 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	pr, pw := io.Pipe()
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go OutputFilter(pr, w, &wg)
+	go func() {
+		if err := OutputFilter(pr, w, &wg); err != nil {
+			slog.Error("output filter", err)
+		}
+	}()
 	err = runner.Run(opts, bn2, env, r.Body, pw, log.Writer())
 	if err != nil {
 		httpStatus = http.StatusInternalServerError
