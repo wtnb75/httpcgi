@@ -24,8 +24,8 @@ jobs:
           go test -v -cover ./... -coverprofile=cover.out
           go test -tags wasmer -v -cover ./... -coverprofile=cover.out.wasmer
           go test -tags wasmtime -v -cover ./... -coverprofile=cover.out.wasmtime
-          tail -n +2 cover.out.wasmer >> cover.out
-          tail -n +2 cover.out.wasmtime >> cover.out
+          go test -tags docker -v -cover ./... -coverprofile=cover.out.docker
+          tail -q -n +2 cover.out.* >> cover.out
       - name: Report
         run: |
           go get github.com/johejo/go-cover-view

@@ -12,9 +12,14 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-var opts SrvConfig
-var runner Runner
-var runnerMap map[string]interface{} = map[string]interface{}{}
+var (
+	opts      SrvConfig
+	runner    Runner
+	runnerMap = map[string]interface{}{}
+	version   = "dev"
+	commit    = "none"
+	date      = "unknown"
+)
 
 func main() {
 	args, err := flags.ParseArgs(&opts, os.Args)
@@ -50,7 +55,9 @@ func main() {
 			slog.Error("basedir not found", err)
 		}
 	}
-	opts.BaseDir, err = filepath.Abs(opts.BaseDir)
+	if opts.Runner != "docker" {
+		opts.BaseDir, err = filepath.Abs(opts.BaseDir)
+	}
 	if err != nil {
 		slog.Error("abs", err)
 	}
@@ -65,7 +72,7 @@ func main() {
 		slog.Error("listen", err)
 		return
 	}
-	slog.Info("listen", "addr", l.Addr())
+	slog.Info("listen", "addr", l.Addr(), "version", version, "commit", commit, "build-date", date)
 	if err := server.Serve(l); err != nil {
 		slog.Error("serve", err)
 		return

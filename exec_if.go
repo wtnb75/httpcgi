@@ -124,11 +124,12 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		slog.Error("not found", err, "basename", bn)
 		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintln(w, bn, "not found")
 		return err
 	}
 	slog.Debug("memo(path)", "bn", bn, "bn2", bn2, "rest", rest)
 	env := map[string]string{
-		"SERVER_SOFTWARE":   "httpcgi/1.0",
+		"SERVER_SOFTWARE":   "httpcgi/" + version,
 		"SERVER_NAME":       host,
 		"GATEWAY_INTERFACE": "CGI/1.1",
 		"DOCUMENT_ROOT":     opts.BaseDir,
