@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -23,6 +24,11 @@ var (
 
 func main() {
 	args, err := flags.ParseArgs(&opts, os.Args)
+	if opts.Version {
+		fmt.Println("httpcgi version", version, "commit", commit, "build", date)
+		fmt.Println("runners:", reflect.ValueOf(runnerMap).MapKeys())
+		return
+	}
 	var logopt slog.HandlerOptions
 	if opts.Verbose {
 		logopt = slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true}

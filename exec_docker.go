@@ -22,7 +22,9 @@ type DockerRunner struct {
 
 func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string]string,
 	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
-	cl, err := client.NewClientWithOpts(client.FromEnv)
+	cl, err := client.NewClientWithOpts(
+		client.FromEnv, client.WithAPIVersionNegotiation(),
+	)
 	if err != nil {
 		slog.Error("client", err)
 		return err
@@ -75,7 +77,9 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 }
 
 func (runner DockerRunner) Exists(conf SrvConfig, path string) (string, string, error) {
-	cl, err := client.NewClientWithOpts(client.FromEnv)
+	cl, err := client.NewClientWithOpts(
+		client.FromEnv, client.WithAPIVersionNegotiation(),
+	)
 	if err != nil {
 		slog.Error("docker client", err)
 		return "", "", err

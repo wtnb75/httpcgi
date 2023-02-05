@@ -27,6 +27,7 @@ type SrvConfig struct {
 	Suffix  string `short:"s" long:"suffix" value-name:".ext"`
 	JSONLog bool   `long:"json-log"`
 	Runner  string `long:"runner" default:"os" value-name:"name"`
+	Version bool   `short:"V" long:"version"`
 }
 
 // Runner is interface to run CGI
