@@ -5,13 +5,14 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"strings"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 	"golang.org/x/exp/slog"
 )
 
@@ -19,39 +20,52 @@ import (
 type DockerRunner struct {
 }
 
-func (runner DockerRunner) multiPlex(mplex io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
-	for {
-		hdr := make([]byte, 8)
-		ilen, err := mplex.Read(hdr)
-		if err == io.EOF {
-			slog.Info("eof", "ilen", ilen)
-			return io.EOF
-		} else if err != nil {
-			slog.Error("read header", err, "ilen", ilen)
-			return err
-		}
-		olen := int(binary.BigEndian.Uint32(hdr[4:8]))
-		slog.Info("type=%d, length=%d", int(hdr[0]), olen)
-		out := stdout
-		if hdr[0] == byte(2) {
-			slog.Info("stderr")
-			out = stderr
-		} else {
-			slog.Info("stdout")
-		}
-		wr, err := io.CopyN(out, mplex, int64(olen))
-		if err != nil {
-			slog.Error("output", err, "written", wr)
-			return err
-		}
-		slog.Info("output", "wr", wr, "olen", olen)
-	}
-	return nil
-}
-
 func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string]string,
 	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
 	slog.Info("TODO: run", "cmdname", cmdname, "envvar", envvar)
+	cl, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		slog.Error("client", err)
+		return err
+	}
+	defer cl.Close()
+	env := []string{}
+	for k, v := range envvar {
+		env = append(env, k+"="+v)
+	}
+	contConfig := container.Config{
+		Image: cmdname,
+		Env:   env,
+		Tty:   false,
+	}
+	ctx := context.Background()
+	cres, err := cl.ContainerCreate(ctx, &contConfig, nil, nil, nil, "")
+	if err != nil {
+		slog.Error("containerCreate", err)
+		return err
+	}
+	defer cl.ContainerRemove(ctx, cres.ID, types.ContainerRemoveOptions{})
+	if err = cl.ContainerStart(ctx, cres.ID, types.ContainerStartOptions{}); err != nil {
+		slog.Error("containerStart", err)
+		return err
+	}
+	stCh, errCh := cl.ContainerWait(ctx, cres.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			slog.Error("execute error", err)
+			return err
+		}
+	case <-stCh:
+	}
+
+	out, err := cl.ContainerLogs(ctx, cres.ID, types.ContainerLogsOptions{ShowStdout: true})
+	if err != nil {
+		slog.Error("logs error", err)
+		return err
+	}
+
+	stdcopy.StdCopy(stdout, stderr, out)
 	return nil
 }
 
@@ -61,6 +75,7 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string) (string, string, 
 		slog.Error("docker client", err)
 		return "", "", err
 	}
+	defer cl.Close()
 	imgOpts := types.ImageListOptions{
 		All:            false,
 		ContainerCount: false,
@@ -82,7 +97,7 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string) (string, string, 
 				slog.Debug("no suffix", "tag", t, "suffix", conf.Suffix)
 				continue
 			}
-			namepart := t[len(conf.BaseDir) : len(conf.BaseDir)+len(conf.Suffix)]
+			namepart := t[len(conf.BaseDir) : len(t)-len(conf.Suffix)]
 			slog.Debug("namepart", "name", namepart)
 			if namepart == path {
 				return t, "", nil
