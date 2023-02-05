@@ -22,7 +22,6 @@ type DockerRunner struct {
 
 func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string]string,
 	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
-	slog.Info("TODO: run", "cmdname", cmdname, "envvar", envvar)
 	cl, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		slog.Error("client", err)
@@ -39,16 +38,19 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 		Tty:   false,
 	}
 	ctx := context.Background()
+	slog.Debug("docker-create")
 	cres, err := cl.ContainerCreate(ctx, &contConfig, nil, nil, nil, "")
 	if err != nil {
 		slog.Error("containerCreate", err)
 		return err
 	}
 	defer cl.ContainerRemove(ctx, cres.ID, types.ContainerRemoveOptions{})
+	slog.Debug("docker-start")
 	if err = cl.ContainerStart(ctx, cres.ID, types.ContainerStartOptions{}); err != nil {
 		slog.Error("containerStart", err)
 		return err
 	}
+	slog.Debug("docker-wait")
 	stCh, errCh := cl.ContainerWait(ctx, cres.ID, container.WaitConditionNotRunning)
 	select {
 	case err := <-errCh:
@@ -57,14 +59,17 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 			return err
 		}
 	case <-stCh:
+		slog.Debug("docker-done")
 	}
 
+	slog.Debug("docker-logs")
 	out, err := cl.ContainerLogs(ctx, cres.ID, types.ContainerLogsOptions{ShowStdout: true})
 	if err != nil {
 		slog.Error("logs error", err)
 		return err
 	}
 
+	slog.Debug("docker-stdcopy")
 	stdcopy.StdCopy(stdout, stderr, out)
 	return nil
 }
