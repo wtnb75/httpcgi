@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"golang.org/x/exp/slog"
@@ -35,13 +36,52 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 		env = append(env, k+"="+v)
 	}
 	contConfig := container.Config{
-		Image: cmdname,
-		Env:   env,
-		Tty:   false,
+		Image:      cmdname,
+		Env:        env,
+		Tty:        false,
+		WorkingDir: conf.DockerWorkDir,
+	}
+	mounts := []mount.Mount{}
+	for _, v := range conf.DockerMounts {
+		sp := strings.Split(v, ":")
+		rdonly := false
+		mountType := mount.TypeBind
+		src := ""
+		tgt := ""
+		if len(sp) >= 2 {
+			src = sp[0]
+			tgt = sp[1]
+		}
+		for _, opt := range strings.Split(sp[2], ",") {
+			switch opt {
+			case "ro":
+				rdonly = true
+			case "rw":
+				rdonly = false
+			case "volume":
+				mountType = mount.TypeVolume
+			case "tmpfs":
+				mountType = mount.TypeTmpfs
+			case "npipe":
+				mountType = mount.TypeNamedPipe
+			case "cluster":
+				mountType = mount.TypeCluster
+			}
+		}
+		slog.Debug("docker-volume", "type", mountType, "src", src, "tgt", tgt, "rdonly", rdonly)
+		mounts = append(mounts, mount.Mount{
+			Type:     mountType,
+			Source:   src,
+			Target:   tgt,
+			ReadOnly: rdonly,
+		})
+	}
+	hostConfig := container.HostConfig{
+		Mounts: mounts,
 	}
 	ctx := context.Background()
 	slog.Debug("docker-create")
-	cres, err := cl.ContainerCreate(ctx, &contConfig, nil, nil, nil, "")
+	cres, err := cl.ContainerCreate(ctx, &contConfig, &hostConfig, nil, nil, "")
 	if err != nil {
 		slog.Error("containerCreate", err)
 		return err
