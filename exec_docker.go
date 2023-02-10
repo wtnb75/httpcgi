@@ -137,20 +137,19 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string) (string, string, 
 	var name, pathinfo string
 	for _, i := range imgs {
 		for _, t := range i.RepoTags {
-			slog.Debug("test", "tag", t)
 			if !strings.HasPrefix(t, conf.BaseDir) {
-				slog.Debug("no prefix", "tag", t, "prefix", conf.BaseDir)
+				slog.Log(slog.Level(-8), "no prefix", "tag", t, "prefix", conf.BaseDir)
 				continue
 			}
 			if !strings.HasSuffix(t, conf.Suffix) {
-				slog.Debug("no suffix", "tag", t, "suffix", conf.Suffix)
+				slog.Log(slog.Level(-8), "no suffix", "tag", t, "suffix", conf.Suffix)
 				continue
 			}
 			namepart := t[len(conf.BaseDir) : len(t)-len(conf.Suffix)]
-			slog.Debug("namepart", "name", namepart)
+			slog.Debug("namepart", "tag", t, "name", namepart)
 			if namepart == path {
 				return t, "", nil
-			} else if strings.HasPrefix(path, namepart) {
+			} else if strings.HasPrefix(path, namepart+"/") {
 				name = t
 				pathinfo = path[len(namepart):]
 			}

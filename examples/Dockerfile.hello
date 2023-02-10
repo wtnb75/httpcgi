@@ -1,0 +1,7 @@
+FROM rust:alpine as dev
+ADD hello.rs /
+RUN rustc hello.rs
+
+FROM alpine:3
+COPY --from=dev /hello /hello
+ENTRYPOINT ["/hello"]
