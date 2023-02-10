@@ -1,0 +1,7 @@
+FROM rust:alpine as dev
+ADD listfiles.rs /
+RUN rustc listfiles.rs
+
+FROM alpine:3
+COPY --from=dev /listfiles /listfiles
+ENTRYPOINT ["/listfiles"]
