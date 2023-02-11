@@ -33,7 +33,11 @@ func initOtelJaeger() (func(), error) {
 		return nil, err
 	}
 	initSetup(exp)
-	return func() { exp.Shutdown(context.Background()) }, nil
+	return func() {
+		if err := exp.Shutdown(context.Background()); err != nil {
+			slog.Error("shutdown", err)
+		}
+	}, nil
 }
 
 func initOtelZipkin() (func(), error) {
@@ -42,7 +46,11 @@ func initOtelZipkin() (func(), error) {
 		return nil, err
 	}
 	initSetup(exp)
-	return func() { exp.Shutdown(context.Background()) }, nil
+	return func() {
+		if err := exp.Shutdown(context.Background()); err != nil {
+			slog.Error("shutdown", err)
+		}
+	}, nil
 }
 
 func initOtelOtlp() (func(), error) {
@@ -51,5 +59,9 @@ func initOtelOtlp() (func(), error) {
 		return nil, err
 	}
 	initSetup(exp)
-	return func() { exp.Shutdown(context.Background()) }, nil
+	return func() {
+		if err := exp.Shutdown(context.Background()); err != nil {
+			slog.Error("shutdown", err)
+		}
+	}, nil
 }
