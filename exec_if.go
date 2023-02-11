@@ -124,7 +124,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		"SERVER_PORT":       port,
 		"REQUEST_METHOD":    r.Method,
 		"PATH_INFO":         rest,
-		"PATH_TRANSLATED":   "",
+		"PATH_TRANSLATED":   filepath.Join(opts.BaseDir, rest),
 		"SCRIPT_NAME":       bn2,
 		"QUERY_STRING":      r.URL.RawQuery,
 		"REMOTE_ADDR":       r.RemoteAddr,
