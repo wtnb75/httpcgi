@@ -29,7 +29,7 @@ func TestWasmerOpenError(t *testing.T) {
 func TestWasmerHello(t *testing.T) {
 	t.Parallel()
 	runner := &WasmerRunner{}
-	conf := SrvConfig{BaseDir: "examples"}
+	conf := SrvConfig{SrvConfigBase{BaseDir: "examples"}}
 	fname := "hello.wasm"
 	stdin := io.NopCloser(bytes.NewBufferString(""))
 	stdout := &bytes.Buffer{}

@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"github.com/jessevdk/go-flags"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/exp/slog"
 )
 
@@ -21,6 +22,8 @@ var (
 	commit    = "none"
 	date      = "unknown"
 )
+
+type cgiHandler struct{}
 
 func main() {
 	args, err := flags.ParseArgs(&opts, os.Args)
@@ -67,7 +70,40 @@ func main() {
 	if err != nil {
 		slog.Error("abs", err)
 	}
-	http.HandleFunc(opts.Prefix, defaultRoute)
+	var mux http.ServeMux
+	mux.Handle("/", new(cgiHandler))
+	var hdl http.Handler
+	hdl = new(cgiHandler)
+	if opts.OtelProvider == "stdout" {
+		if fin, err := initOtelStdout(); err != nil {
+			slog.Error("otel-stdout", err)
+		} else {
+			defer fin()
+		}
+	} else if opts.OtelProvider == "jaeger" {
+		if fin, err := initOtelJaeger(); err != nil {
+			slog.Error("otel-jaeger", err)
+		} else {
+			defer fin()
+		}
+	} else if opts.OtelProvider == "zipkin" {
+		if fin, err := initOtelZipkin(); err != nil {
+			slog.Error("otel-zipkin", err)
+		} else {
+			defer fin()
+		}
+	} else if opts.OtelProvider == "otlp" {
+		if fin, err := initOtelOtlp(); err != nil {
+			slog.Error("otel-otlp", err)
+		} else {
+			defer fin()
+		}
+	}
+	if opts.OtelProvider != "" {
+		hdl = otelhttp.NewHandler(
+			&mux, "httpcgi", otelhttp.WithMessageEvents(otelhttp.ReadEvents, otelhttp.WriteEvents))
+	}
+	http.Handle(opts.Prefix, hdl)
 
 	server := http.Server{
 		Addr:    opts.Addr,
@@ -85,7 +121,7 @@ func main() {
 	}
 }
 
-func defaultRoute(w http.ResponseWriter, r *http.Request) {
+func (h *cgiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := RunBy(opts, runner, w, r)
 	if err != nil {
 		slog.Error("runby", err)
