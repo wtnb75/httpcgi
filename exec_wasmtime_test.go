@@ -29,7 +29,7 @@ func TestWasmtimeOpenError(t *testing.T) {
 func TestWasmtimeHello(t *testing.T) {
 	t.Parallel()
 	runner := &WasmtimeRunner{}
-	conf := SrvConfig{BaseDir: "examples"}
+	conf := SrvConfig{SrvConfigBase{BaseDir: "examples"}}
 	fname := "hello.wasm"
 	stdin := io.NopCloser(bytes.NewBufferString(""))
 	stdout := &bytes.Buffer{}

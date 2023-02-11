@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/exp/slog"
 )
 
@@ -107,7 +109,11 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		return err
 	}
 	slog.Debug("memo", "host", host, "port", port)
+	_, span := otel.Tracer("").Start(r.Context(), "exists")
+	span.SetAttributes(attribute.String("path", bn))
 	bn2, rest, err := runner.Exists(opts, bn)
+	span.SetAttributes(attribute.String("script", bn), attribute.String("rest", rest))
+	span.End()
 	if err != nil {
 		slog.Error("not found", err, "basename", bn)
 		w.WriteHeader(http.StatusNotFound)
@@ -148,7 +154,10 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 			slog.Error("output filter", err)
 		}
 	}()
+	_, span2 := otel.Tracer("").Start(r.Context(), "run")
+	span2.SetAttributes(attribute.String("script", bn2))
 	err = runner.Run(opts, bn2, env, r.Body, pw, log.Writer())
+	span2.End()
 	if err != nil {
 		httpStatus = http.StatusInternalServerError
 		w.WriteHeader(httpStatus)

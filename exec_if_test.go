@@ -112,7 +112,7 @@ func (w writer) WriteHeader(statusCode int) {
 
 func TestRunBy(t *testing.T) {
 	t.Parallel()
-	opts := SrvConfig{Addr: ":9999", BaseDir: "."}
+	opts := SrvConfig{SrvConfigBase{Addr: ":9999", BaseDir: "."}}
 	runner := runner1{}
 	bio := bytes.NewBufferString("")
 	w := writer{
@@ -139,7 +139,7 @@ func TestRunBy(t *testing.T) {
 
 func TestRunByStatusCode(t *testing.T) {
 	t.Parallel()
-	opts := SrvConfig{Addr: ":9999", BaseDir: "."}
+	opts := SrvConfig{SrvConfigBase{Addr: ":9999", BaseDir: "."}}
 	runner := runner2{}
 	bio := bytes.NewBufferString("")
 	w := writer{
