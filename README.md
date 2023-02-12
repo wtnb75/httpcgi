@@ -28,8 +28,8 @@ Usage:
   httpcgi [OPTIONS]
 
 Application Options:
-  -v, --verbose               log verbose
-  -q, --quiet                 log quiet
+  -v, --verbose                                      log verbose
+  -q, --quiet                                        log quiet
   -l, --listen=[host]:port
       --protocol=tcp/unix
   -p, --prefix=url-prefix
@@ -37,9 +37,11 @@ Application Options:
   -s, --suffix=.ext
       --json-log
       --runner=name
+  -V, --version
+      --opentelemetry=[stdout|jaeger|zipkin|otlp|otlp-http]
 
 Help Options:
-  -h, --help                  Show this help message
+  -h, --help                                         Show this help message
 ```
 
 ## docker

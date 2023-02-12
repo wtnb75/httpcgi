@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -49,7 +50,7 @@ func (runner *WasmerRunner) pipeStderr(wasiEnv *wasmer.WasiEnvironment, output i
 
 // Run implements Runner.Run
 func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[string]string,
-	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, ctx context.Context) error {
 	fn := filepath.Join(conf.BaseDir, cmdname)
 	bytecode, err := os.ReadFile(fn)
 	if err != nil {
@@ -108,7 +109,7 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 	return nil
 }
 
-func (runner WasmerRunner) Exists(conf SrvConfig, path string) (string, string, error) {
+func (runner WasmerRunner) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
 	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
 }
 
