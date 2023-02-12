@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,7 +19,7 @@ type WasmtimeRunner struct {
 
 // Run implements Runner.Run
 func (runner WasmtimeRunner) Run(conf SrvConfig, cmdname string, envvar map[string]string,
-	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, ctx context.Context) error {
 	fn := filepath.Join(conf.BaseDir, cmdname)
 	bytecode, err := os.ReadFile(fn)
 	if err != nil {
@@ -112,7 +113,7 @@ func (runner WasmtimeRunner) Run(conf SrvConfig, cmdname string, envvar map[stri
 	return nil
 }
 
-func (runner WasmtimeRunner) Exists(conf SrvConfig, path string) (string, string, error) {
+func (runner WasmtimeRunner) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
 	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
 }
 

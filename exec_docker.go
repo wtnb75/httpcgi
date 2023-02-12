@@ -14,6 +14,8 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/exp/slog"
 )
 
@@ -22,7 +24,9 @@ type DockerRunner struct {
 }
 
 func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string]string,
-	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, ctx context.Context) error {
+	ctx2, span2 := otel.Tracer("").Start(ctx, "docker-run")
+	defer span2.End()
 	cl, err := client.NewClientWithOpts(
 		client.FromEnv, client.WithAPIVersionNegotiation(),
 	)
@@ -79,48 +83,62 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	hostConfig := container.HostConfig{
 		Mounts: mounts,
 	}
-	ctx := context.Background()
+	_, span3 := otel.Tracer("").Start(ctx2, "docker-create")
 	slog.Debug("docker-create")
 	cres, err := cl.ContainerCreate(ctx, &contConfig, &hostConfig, nil, nil, "")
+	span3.End()
 	if err != nil {
 		slog.Error("containerCreate", err)
 		return err
 	}
 	defer cl.ContainerRemove(ctx, cres.ID, types.ContainerRemoveOptions{})
 	slog.Debug("docker-start")
+	_, span4 := otel.Tracer("").Start(ctx2, "docker-start")
 	if err = cl.ContainerStart(ctx, cres.ID, types.ContainerStartOptions{}); err != nil {
+		span4.End()
 		slog.Error("containerStart", err)
 		return err
 	}
+	span4.End()
 	slog.Debug("docker-wait")
+	_, span5 := otel.Tracer("").Start(ctx2, "docker-wait")
 	stCh, errCh := cl.ContainerWait(ctx, cres.ID, container.WaitConditionNotRunning)
 	select {
 	case err := <-errCh:
 		if err != nil {
 			slog.Error("execute error", err)
+			span5.End()
 			return err
 		}
 	case <-stCh:
 		slog.Debug("docker-done")
 	}
+	span5.End()
 
 	slog.Debug("docker-logs")
+	_, span6 := otel.Tracer("").Start(ctx2, "docker-logs")
 	out, err := cl.ContainerLogs(ctx, cres.ID, types.ContainerLogsOptions{ShowStdout: true})
+	span6.End()
 	if err != nil {
 		slog.Error("logs error", err)
 		return err
 	}
 
 	slog.Debug("docker-stdcopy")
+	_, span7 := otel.Tracer("").Start(ctx2, "docker-stdcopy")
 	stdcopy.StdCopy(stdout, stderr, out)
+	span7.End()
 	return nil
 }
 
-func (runner DockerRunner) Exists(conf SrvConfig, path string) (string, string, error) {
+func (runner DockerRunner) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
+	ctx2, span2 := otel.Tracer("").Start(ctx, "docker-exists")
+	defer span2.End()
 	cl, err := client.NewClientWithOpts(
 		client.FromEnv, client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
+		span2.SetStatus(codes.Error, "connect")
 		slog.Error("docker client", err)
 		return "", "", err
 	}
@@ -129,8 +147,11 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string) (string, string, 
 		All:            false,
 		ContainerCount: false,
 	}
+	_, span3 := otel.Tracer("").Start(ctx2, "imagelist")
 	imgs, err := cl.ImageList(context.Background(), imgOpts)
+	span3.End()
 	if err != nil {
+		span2.SetStatus(codes.Error, "image list")
 		slog.Error("image list", err)
 		return "", "", err
 	}
@@ -156,6 +177,7 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string) (string, string, 
 		}
 	}
 	if len(pathinfo) == 0 {
+		span2.SetStatus(codes.Error, "not found")
 		return "", "", fmt.Errorf("image not found: %s", path)
 	}
 	return name, pathinfo, nil

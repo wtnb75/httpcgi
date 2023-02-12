@@ -98,6 +98,12 @@ func main() {
 		} else {
 			defer fin()
 		}
+	} else if opts.OtelProvider == "otlp-http" {
+		if fin, err := initOtelOtlpHttp(); err != nil {
+			slog.Error("otel-otlp-http", err)
+		} else {
+			defer fin()
+		}
 	}
 	if opts.OtelProvider != "" {
 		hdl = otelhttp.NewHandler(

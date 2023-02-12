@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -73,7 +74,7 @@ type writer struct {
 }
 
 func (runner runner1) Run(conf SrvConfig, cmdname string, envvar map[string]string,
-	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, ctx context.Context) error {
 	fmt.Fprintln(stdout, "Status: 200")
 	fmt.Fprintln(stdout, "Content-Type: application/json")
 	fmt.Fprintln(stdout, "")
@@ -82,7 +83,7 @@ func (runner runner1) Run(conf SrvConfig, cmdname string, envvar map[string]stri
 }
 
 func (runner runner2) Run(conf SrvConfig, cmdname string, envvar map[string]string,
-	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, ctx context.Context) error {
 	fmt.Fprintln(stdout, "Status: 500")
 	fmt.Fprintln(stdout, "Content-Type: application/json")
 	fmt.Fprintln(stdout, "")
@@ -90,11 +91,11 @@ func (runner runner2) Run(conf SrvConfig, cmdname string, envvar map[string]stri
 	return nil
 }
 
-func (runner runner1) Exists(conf SrvConfig, path string) (string, string, error) {
+func (runner runner1) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
 	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
 }
 
-func (runner runner2) Exists(conf SrvConfig, path string) (string, string, error) {
+func (runner runner2) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
 	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
 }
 

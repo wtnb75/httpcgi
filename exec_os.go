@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os/exec"
@@ -33,7 +34,7 @@ func (runner *OsRunner) getPipe(cmd *exec.Cmd) (
 
 // Run implements Runner.Run
 func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]string,
-	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error {
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, ctx context.Context) error {
 	fn := filepath.Join(conf.BaseDir, cmdname)
 	slog.Debug("path", "full-path", fn)
 	cmd := exec.Command(fn)
@@ -76,7 +77,7 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	return nil
 }
 
-func (runner OsRunner) Exists(conf SrvConfig, path string) (string, string, error) {
+func (runner OsRunner) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
 	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -15,14 +16,16 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/exp/slog"
 )
 
 // Runner is interface to run CGI
 type Runner interface {
 	Run(conf SrvConfig, cmdname string, envvar map[string]string,
-		stdin io.ReadCloser, stdout io.Writer, stderr io.Writer) error
-	Exists(conf SrvConfig, path string) (string, string, error)
+		stdin io.ReadCloser, stdout io.Writer, stderr io.Writer,
+		ctx context.Context) error
+	Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error)
 }
 
 // OutputFilter converts CGI output to http.ResponseWriter
@@ -90,6 +93,8 @@ func splitPathInfo(basedir string, path string, suffix string) (string, string, 
 
 // RunBy executes HTTP request
 func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request) error {
+	ctx, span := otel.Tracer("").Start(r.Context(), "run")
+	defer span.End()
 	startTime := time.Now()
 	httpStatus := http.StatusOK
 	defer func() {
@@ -105,17 +110,19 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	bn := strings.TrimPrefix(r.URL.Path, opts.Prefix)
 	host, port, err := net.SplitHostPort(opts.Addr)
 	if err != nil {
+		span.SetStatus(codes.Error, "split hostport")
 		slog.Error("split host port", err)
 		return err
 	}
 	slog.Debug("memo", "host", host, "port", port)
-	_, span := otel.Tracer("").Start(r.Context(), "exists")
-	span.SetAttributes(attribute.String("path", bn))
-	bn2, rest, err := runner.Exists(opts, bn)
-	span.SetAttributes(attribute.String("script", bn), attribute.String("rest", rest))
-	span.End()
+	_, span1 := otel.Tracer("").Start(ctx, "exists")
+	span1.SetAttributes(attribute.String("path", bn))
+	bn2, rest, err := runner.Exists(opts, bn, ctx)
+	span1.SetAttributes(attribute.String("script", bn), attribute.String("rest", rest))
+	span1.End()
 	if err != nil {
 		slog.Error("not found", err, "basename", bn)
+		span.SetStatus(codes.Error, "not found")
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintln(w, bn, "not found")
 		return err
@@ -154,11 +161,12 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 			slog.Error("output filter", err)
 		}
 	}()
-	_, span2 := otel.Tracer("").Start(r.Context(), "run")
+	_, span2 := otel.Tracer("").Start(ctx, "run")
 	span2.SetAttributes(attribute.String("script", bn2))
-	err = runner.Run(opts, bn2, env, r.Body, pw, log.Writer())
+	err = runner.Run(opts, bn2, env, r.Body, pw, log.Writer(), ctx)
 	span2.End()
 	if err != nil {
+		span.SetStatus(codes.Error, "exec error")
 		httpStatus = http.StatusInternalServerError
 		w.WriteHeader(httpStatus)
 		fmt.Fprintf(w, "command error: %s", err)

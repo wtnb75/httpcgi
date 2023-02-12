@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"strings"
 	"testing"
@@ -19,7 +20,7 @@ func TestWasmerOpenError(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	envvar := map[string]string{}
-	err := runner.Run(conf, fname, envvar, stdin, stdout, stderr)
+	err := runner.Run(conf, fname, envvar, stdin, stdout, stderr, context.Background())
 	if err == nil {
 		t.Error("no-error")
 	}
@@ -35,7 +36,7 @@ func TestWasmerHello(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	envvar := map[string]string{}
-	err := runner.Run(conf, fname, envvar, stdin, stdout, stderr)
+	err := runner.Run(conf, fname, envvar, stdin, stdout, stderr, context.Background())
 	if err != nil {
 		t.Errorf("error %s", err)
 	}
