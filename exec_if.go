@@ -163,6 +163,14 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	}()
 	_, span2 := otel.Tracer("").Start(ctx, "run")
 	span2.SetAttributes(attribute.String("script", bn2))
+	if span2.IsRecording() {
+		traceVer := 0
+		traceID := span2.SpanContext().TraceID().String()
+		spanID := span2.SpanContext().SpanID().String()
+		traceFlags := span2.SpanContext().TraceFlags()
+		env["HTTP_TRACEPARENT"] = fmt.Sprintf("%02d-%s-%s-%02d", traceVer, traceID, spanID, traceFlags)
+		env["HTTP_TRACESTATE"] = span2.SpanContext().TraceState().String()
+	}
 	err = runner.Run(opts, bn2, env, r.Body, pw, log.Writer(), ctx)
 	span2.End()
 	if err != nil {
