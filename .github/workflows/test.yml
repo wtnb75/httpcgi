@@ -25,6 +25,7 @@ jobs:
           go test -tags wasmer -v -cover ./... -coverprofile=cover.out.wasmer
           go test -tags wasmtime -v -cover ./... -coverprofile=cover.out.wasmtime
           go test -tags docker -v -cover ./... -coverprofile=cover.out.docker
+          go test -tags wazero -v -cover ./... -coverprofile=cover.out.wazero
           tail -q -n +2 cover.out.* >> cover.out
       - name: Report
         run: |
