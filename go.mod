@@ -6,6 +6,7 @@ require (
 	github.com/bytecodealliance/wasmtime-go v1.0.0
 	github.com/docker/docker v23.0.1+incompatible
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/tetratelabs/wazero v1.0.0-pre.8
 	github.com/wasmerio/wasmer-go v1.0.4
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.39.0
 	go.opentelemetry.io/otel v1.13.0
