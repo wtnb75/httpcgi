@@ -121,7 +121,7 @@ func TestRunBy(t *testing.T) {
 	w := writer{
 		out: bio,
 	}
-	u, _ := url.Parse("htt://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
 	r := http.Request{
 		Method:     http.MethodGet,
 		RemoteAddr: "127.0.0.1:9999",
@@ -150,7 +150,7 @@ func TestRunByStatusCode(t *testing.T) {
 	w := writer{
 		out: bio,
 	}
-	u, _ := url.Parse("htt://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
 	r := http.Request{
 		Method:     http.MethodGet,
 		RemoteAddr: "127.0.0.1:9999",
