@@ -70,10 +70,6 @@ func main() {
 	if err != nil {
 		slog.Error("abs", err)
 	}
-	var mux http.ServeMux
-	mux.Handle("/", new(cgiHandler))
-	var hdl http.Handler
-	hdl = new(cgiHandler)
 	if opts.OtelProvider == "stdout" {
 		if fin, err := initOtelStdout(); err != nil {
 			slog.Error("otel-stdout", err)
@@ -105,6 +101,10 @@ func main() {
 			defer fin()
 		}
 	}
+	var mux http.ServeMux
+	var hdl http.Handler
+	hdl = new(cgiHandler)
+	mux.Handle("/", hdl)
 	if opts.OtelProvider != "" {
 		hdl = otelhttp.NewHandler(
 			&mux, "httpcgi", otelhttp.WithMessageEvents(otelhttp.ReadEvents, otelhttp.WriteEvents))

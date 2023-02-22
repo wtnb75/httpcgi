@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -23,6 +24,7 @@ func initSetup(exp sdktrace.SpanExporter) {
 			semconv.ServiceVersionKey.String(version))),
 	)
 	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
 }
 
 func initOtelStdout() (func(), error) {

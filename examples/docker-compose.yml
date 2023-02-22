@@ -2,15 +2,51 @@ version: "3"
 
 services:
     top:
+        # http://localhost:8080
         image: traefik:v2.5
         command:
             - "--providers.docker=true"
+            - "--providers.docker.exposedbydefault=false"
             - "--entrypoints.web.address=:80"
             - "--accesslog=true"
+            # - "--tracing.zipkin=true"
+            # - "--tracing.zipkin.httpEndpoint=http://zipkin:9411/api/v2/spans"
+            - "--tracing.jaeger=true"
+            - "--tracing.jaeger.collector.endpoint=http://jaeger:14268/api/traces?format=jaeger.thrift"
+            - "--tracing.jaeger.propagation=jaeger"
+            # - "--tracing.jaeger.propagation=b3"
+            - "--api=true"
+            - "--api.insecure=true"
         ports:
             - "80:80"
+            - "8080:8080"
         volumes:
             - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+    zipkin:
+        # http://localhost/zipkin
+        image: openzipkin/zipkin-slim:latest
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.services.zipkin.loadbalancer.server.port=9411"
+            - "traefik.http.routers.zipkin.rule=PathPrefix(`/zipkin`)"
+            - "traefik.http.routers.zipkin.entrypoints=web"
+
+    jaeger:
+        # http://localhost/jaeger
+        image: jaegertracing/all-in-one:1.42
+        environment:
+            - "COLLECTOR_ZIPKIN_HOST_PORT=:9411"
+        command:
+            - --query.base-path
+            - /jaeger
+            - --memory.max-traces
+            - "10000"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
+            - "traefik.http.routers.jaeger.rule=PathPrefix(`/jaeger`)"
+            - "traefik.http.routers.jaeger.entrypoints=web"
     static:
         # http://localhost/hello.rs
         image: nginx:alpine
@@ -22,7 +58,7 @@ services:
             - "traefik.http.routers.static.rule=PathPrefix(`/`)"
             - "traefik.http.routers.static.entrypoints=web"
     cgi:
-        # http://localhost/cgi-bin/hello
+        # http://localhost/httpcgi/hello
         image: ghcr.io/wtnb75/httpcgi:latest
         volumes:
             - "./file/cgi:/work:ro"
@@ -30,10 +66,18 @@ services:
         command:
             - "-l"
             - ":8080"
+            - "--opentelemetry=jaeger"
+            # - "--opentelemetry=zipkin"
+        environment:
+            - OTEL_EXPORTER_JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+            - OTEL_EXPORTER_JAEGER_PROTOCOL=http/thrift.binary
+            - OTEL_PROPAGATORS=jaeger
+            # - OTEL_PROPAGATORS=b3
+            - OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
         labels:
             - "traefik.enable=true"
-            - "traefik.http.services.cgi.loadbalancer.server.port=8080"
-            - "traefik.http.routers.cgi.rule=PathPrefix(`/cgi-bin`)"
-            - "traefik.http.middlewares.cgi.stripprefix.prefixes=/cgi-bin"
-            - "traefik.http.routers.cgi.entrypoints=web"
-            - "traefik.http.routers.cgi.middlewares=cgi"
+            - "traefik.http.services.httpcgi.loadbalancer.server.port=8080"
+            - "traefik.http.routers.httpcgi.rule=PathPrefix(`/httpcgi`)"
+            - "traefik.http.middlewares.httpcgi.stripprefix.prefixes=/httpcgi"
+            - "traefik.http.routers.httpcgi.entrypoints=web"
+            - "traefik.http.routers.httpcgi.middlewares=httpcgi"
