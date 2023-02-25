@@ -5,7 +5,9 @@ go 1.19
 require (
 	github.com/bytecodealliance/wasmtime-go v1.0.0
 	github.com/docker/docker v23.0.1+incompatible
+	github.com/golang/mock v1.6.0
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/opencontainers/image-spec v1.0.2
 	github.com/tetratelabs/wazero v1.0.0-pre.9
 	github.com/wasmerio/wasmer-go v1.0.4
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.39.0
@@ -39,7 +41,6 @@ require (
 	github.com/moby/term v0.0.0-20221205130635-1aeaba878587 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	go.opentelemetry.io/contrib/propagators/aws v1.14.0 // indirect

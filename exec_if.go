@@ -119,7 +119,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	_, span1 := otel.Tracer("").Start(ctx, "exists")
 	span1.SetAttributes(attribute.String("path", bn))
 	bn2, rest, err := runner.Exists(opts, bn, ctx)
-	span1.SetAttributes(attribute.String("script", bn), attribute.String("rest", rest))
+	span1.SetAttributes(attribute.String("script", bn2), attribute.String("pathinfo", rest))
 	span1.End()
 	if err != nil {
 		slog.Error("not found", err, "basename", bn)
@@ -161,6 +161,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		if err := OutputFilter(pr, w, &wg); err != nil {
 			slog.Error("output filter", err)
 		}
+		span.AddEvent("ofilter finished")
 	}()
 	_, span2 := otel.Tracer("").Start(ctx, "run")
 	span2.SetAttributes(attribute.String("script", bn2))
