@@ -101,7 +101,7 @@ func TestDockerRun(t *testing.T) {
 	cli := mock_client.NewMockAPIClient(ctrl)
 	runner := DockerRunner{cli: cli}
 	conf := SrvConfig{}
-	conf.DockerMounts = []string{"dir_from1:dir_to2,ro", "dir_from2:dir_to2", "tmp:tmp,tmpfs"}
+	conf.DockerMounts = []string{"dir_from1:dir_to2:ro", "dir_from2:dir_to2", "tmp:tmp:tmpfs,rw"}
 	envs := map[string]string{"hello": "world"}
 	stdin := io.NopCloser(bytes.NewBufferString("hello"))
 	stdout := &bytes.Buffer{}
