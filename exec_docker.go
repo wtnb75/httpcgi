@@ -46,11 +46,15 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 		mountType := mount.TypeBind
 		src := ""
 		tgt := ""
+		opts := ""
 		if len(sp) >= 2 {
 			src = sp[0]
 			tgt = sp[1]
 		}
-		for _, opt := range strings.Split(tgt, ",") {
+		if len(sp) >= 3 {
+			opts = sp[2]
+		}
+		for _, opt := range strings.Split(opts, ",") {
 			switch opt {
 			case "ro":
 				rdonly = true
