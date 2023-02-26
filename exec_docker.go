@@ -50,7 +50,7 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 			src = sp[0]
 			tgt = sp[1]
 		}
-		for _, opt := range strings.Split(sp[2], ",") {
+		for _, opt := range strings.Split(tgt, ",") {
 			switch opt {
 			case "ro":
 				rdonly = true
