@@ -140,11 +140,9 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string, ctx context.Conte
 	for _, i := range imgs {
 		for _, t := range i.RepoTags {
 			if !strings.HasPrefix(t, conf.BaseDir) {
-				slog.Log(slog.Level(-8), "no prefix", "tag", t, "prefix", conf.BaseDir)
 				continue
 			}
 			if !strings.HasSuffix(t, conf.Suffix) {
-				slog.Log(slog.Level(-8), "no suffix", "tag", t, "suffix", conf.Suffix)
 				continue
 			}
 			namepart := t[len(conf.BaseDir) : len(t)-len(conf.Suffix)]

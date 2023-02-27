@@ -73,6 +73,7 @@ func TestDockerExists(t *testing.T) {
 }
 
 func TestDockerExistsAPIError(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	cli := mock_client.NewMockAPIClient(ctrl)
