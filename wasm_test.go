@@ -26,7 +26,8 @@ func testWasmOpenError(t *testing.T, runner Runner) {
 }
 
 func testWasmHello(t *testing.T, runner Runner) {
-	conf := SrvConfig{SrvConfigBase{BaseDir: "examples"}}
+	conf := SrvConfig{}
+	conf.BaseDir = "examples"
 	fname := "hello.wasm"
 	stdin := io.NopCloser(bytes.NewBufferString(""))
 	stdout := &bytes.Buffer{}
