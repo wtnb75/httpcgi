@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -25,7 +24,7 @@ func TestOsExists(t *testing.T) {
 	if err == nil {
 		t.Error("not error", err)
 	}
-	if err = ioutil.WriteFile(filepath.Join(tmpd, "exists"), []byte(""), 0755); err != nil {
+	if err = os.WriteFile(filepath.Join(tmpd, "exists"), []byte(""), 0755); err != nil {
 		t.Error("writefile", err)
 	}
 	res1, res2, err := runner.Exists(conf, "exists", ctx)
@@ -61,7 +60,7 @@ func TestOsRun(t *testing.T) {
 	defer os.RemoveAll(tmpd)
 	conf.BaseDir = tmpd
 	ctx := context.Background()
-	if err = ioutil.WriteFile(filepath.Join(tmpd, "cmd1"), []byte("#! /bin/sh\n"), 0755); err != nil {
+	if err = os.WriteFile(filepath.Join(tmpd, "cmd1"), []byte("#! /bin/sh\n"), 0755); err != nil {
 		t.Error("writefile", err)
 	}
 	env := map[string]string{}
