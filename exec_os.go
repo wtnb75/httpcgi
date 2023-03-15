@@ -44,6 +44,9 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 		slog.Error("pipe error", err)
 		return err
 	}
+	defer cmdStdin.Close()
+	defer cmdStdout.Close()
+	defer cmdStderr.Close()
 	for k, v := range envvar {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
@@ -52,6 +55,11 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 		return err
 	}
 	slog.Debug("pid", "process", cmd.Process)
+	defer func() {
+		if err := cmd.Wait(); err != nil {
+			slog.Error("wait", err)
+		}
+	}()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -72,8 +80,6 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 		}
 	}()
 	wg.Wait()
-	cmdStdin.Close()
-	cmdStderr.Close()
 	return nil
 }
 
