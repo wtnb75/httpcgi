@@ -8,7 +8,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/opencontainers/image-spec v1.0.2
-	github.com/tetratelabs/wazero v1.0.0-pre.9
+	github.com/tetratelabs/wazero v1.0.1
 	github.com/wasmerio/wasmer-go v1.0.4
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.39.0
 	go.opentelemetry.io/contrib/propagators/autoprop v0.39.0
@@ -16,13 +16,9 @@ require (
 	go.opentelemetry.io/otel/exporters/jaeger v1.13.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.13.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.13.0
-	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v0.36.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.13.0
 	go.opentelemetry.io/otel/exporters/zipkin v1.13.0
-	go.opentelemetry.io/otel/metric v0.36.0
 	go.opentelemetry.io/otel/sdk v1.13.0
-	go.opentelemetry.io/otel/sdk/metric v0.36.0
-	go.opentelemetry.io/otel/trace v1.13.0
 	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
 )
 
@@ -50,6 +46,8 @@ require (
 	go.opentelemetry.io/contrib/propagators/ot v1.14.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.13.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.13.0 // indirect
+	go.opentelemetry.io/otel/metric v0.36.0 // indirect
+	go.opentelemetry.io/otel/trace v1.13.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
