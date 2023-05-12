@@ -35,8 +35,6 @@ jobs:
           git config --local user.name "GitHub Actions"
           git config --local user.email "546304+github-actions[bot]@users.noreply.github.com"
       - name: git commit/push
-        env:
-          GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
         run: |
           tag=version$(date +%Y%m%d)
           sudo chown -R $(id -u):$(id -g) .git
