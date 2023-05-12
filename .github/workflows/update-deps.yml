@@ -33,7 +33,7 @@ jobs:
       - name: Create PR
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GH_PAT }}
           commit-message: Update Dependencies
           title: 'auto update dependencies'
           add-paths: |
