@@ -30,14 +30,10 @@ jobs:
           go test -tags wasmtime
           go test -tags docker
           go test -tags wazero
-      - name: git setting
-        run: |
-          git config --local user.name "GitHub Actions"
-          git config --local user.email "546304+github-actions[bot]@users.noreply.github.com"
       - name: Create PR
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT }}
           commit-message: Update Dependencies
           title: 'auto update dependencies'
           add-paths: |
