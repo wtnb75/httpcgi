@@ -41,10 +41,10 @@ func main() {
 		logopt = slog.HandlerOptions{}
 	}
 	if opts.JSONLog {
-		lh := logopt.NewJSONHandler(os.Stdout)
+		lh := slog.NewJSONHandler(os.Stdout, &logopt)
 		slog.SetDefault(slog.New(lh))
 	} else {
-		lh := logopt.NewTextHandler(os.Stdout)
+		lh := slog.NewTextHandler(os.Stdout, &logopt)
 		slog.SetDefault(slog.New(lh))
 	}
 	slog.Debug("start0", "args", args, "opts", opts)
