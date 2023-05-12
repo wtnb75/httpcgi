@@ -1,0 +1,48 @@
+name: update go.mod
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  update_deps:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '>=1.19.5'
+          cache: true
+      - run: go get -u
+      - run: go mod tidy
+      - name: Build
+        run: |
+          go build
+          go build -tags wasmer
+          go build -tags wasmtime
+          go build -tags docker
+          go build -tags wazero
+      - name: Test
+        run: |
+          go test
+          go test -tags wasmer
+          go test -tags wasmtime
+          go test -tags docker
+          go test -tags wazero
+      - name: git setting
+        run: |
+          git config --local user.name "GitHub Actions"
+          git config --local user.email "546304+github-actions[bot]@users.noreply.github.com"
+      - name: git commit/push
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+        run: |
+          tag=version$(date +%Y%m%d)
+          sudo chown -R $(id -u):$(id -g) .git
+          git add go.mod go.sum
+          git diff --cached --name-only | grep -q go || exit 0
+          git checkout -b $tag
+          git commit -m 'update dependencies'
+          hub push origin $tag
+          hub pull-request -b ${GITHUB_REF##*/} -m "update deps $(date +%Y-%m-%d)"
