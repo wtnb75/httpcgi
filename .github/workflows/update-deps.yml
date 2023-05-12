@@ -37,6 +37,7 @@ jobs:
       - name: Create PR
         uses: peter-evans/create-pull-request@v5
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Update Dependencies
           title: 'auto update dependencies'
           add-paths: |
