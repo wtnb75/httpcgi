@@ -39,7 +39,7 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter, wg *sync.WaitGroup) e
 	for {
 		line, _, err := rd.ReadLine()
 		if err != nil {
-			slog.Error("read header error:", err)
+			slog.Error("read header error:", "error", err)
 			return err
 		}
 		if len(line) == 0 {
@@ -68,7 +68,7 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter, wg *sync.WaitGroup) e
 	w.WriteHeader(statusCode)
 	olen, err := io.Copy(w, rd)
 	if err != nil {
-		slog.Error("write body error", err)
+		slog.Error("write body error", "error", err)
 		return err
 	}
 	slog.Debug("write body", "length", olen)
@@ -112,7 +112,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	host, port, err := net.SplitHostPort(opts.Addr)
 	if err != nil {
 		span.SetStatus(codes.Error, "split hostport")
-		slog.Error("split host port", err)
+		slog.Error("split host port", "error", err)
 		return err
 	}
 	slog.Debug("memo", "host", host, "port", port)
@@ -122,7 +122,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	span1.SetAttributes(attribute.String("script", bn2), attribute.String("pathinfo", rest))
 	span1.End()
 	if err != nil {
-		slog.Error("not found", err, "basename", bn)
+		slog.Error("not found", "error", err, "basename", bn)
 		span.SetStatus(codes.Error, "not found")
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintln(w, bn, "not found")
@@ -159,7 +159,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	wg.Add(1)
 	go func() {
 		if err := OutputFilter(pr, w, &wg); err != nil {
-			slog.Error("output filter", err)
+			slog.Error("output filter", "error", err)
 		}
 		span.AddEvent("ofilter finished")
 	}()
@@ -194,7 +194,7 @@ func DoPipe(input io.Reader, output io.Writer, wg *sync.WaitGroup) error {
 	}
 	ilen, err := io.Copy(output, input)
 	if err != nil {
-		slog.Error("pipe error:", err)
+		slog.Error("pipe error:", "error", err)
 		return err
 	}
 	slog.Debug("pipe", "length", ilen)

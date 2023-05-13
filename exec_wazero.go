@@ -23,7 +23,7 @@ func (runner WazeroRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	fn := filepath.Join(conf.BaseDir, cmdname)
 	bytecode, err := os.ReadFile(fn)
 	if err != nil {
-		slog.Error("read bytecode", err, "filename", fn)
+		slog.Error("read bytecode", "error", err, "filename", fn)
 		return err
 	}
 	slog.Debug("bytecode read", "length", len(bytecode), "filename", fn)
@@ -39,13 +39,13 @@ func (runner WazeroRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	}
 	code, err := rt.CompileModule(ctx, bytecode)
 	if err != nil {
-		slog.Error("compile", err)
+		slog.Error("compile", "error", err)
 		return err
 	}
 	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 	_, err = rt.InstantiateModule(ctx, code, wconf)
 	if err != nil {
-		slog.Error("instantiate", err)
+		slog.Error("instantiate", "error", err)
 	}
 	return err
 }

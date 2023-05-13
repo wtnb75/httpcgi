@@ -26,7 +26,7 @@ func (runner *WasmerRunner) pipeStdout(wasiEnv *wasmer.WasiEnvironment, output i
 	slog.Info("stdout", "length", len(data))
 	dlen, err := output.Write(data)
 	if err != nil {
-		slog.Error("output", err)
+		slog.Error("output", "error", err)
 		return err
 	}
 	slog.Debug("output", "length", dlen)
@@ -41,7 +41,7 @@ func (runner *WasmerRunner) pipeStderr(wasiEnv *wasmer.WasiEnvironment, output i
 	slog.Info("stderr", "length", len(data))
 	dlen, err := output.Write(data)
 	if err != nil {
-		slog.Error("output(err)", err)
+		slog.Error("output(err)", "error", err)
 		return err
 	}
 	slog.Debug("output(err)", "length", dlen)
@@ -54,7 +54,7 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 	fn := filepath.Join(conf.BaseDir, cmdname)
 	bytecode, err := os.ReadFile(fn)
 	if err != nil {
-		slog.Error("read bytecode", err, "filename", fn)
+		slog.Error("read bytecode", "error", err, "filename", fn)
 		return err
 	}
 	slog.Debug("bytecode read", "length", len(bytecode), "filename", fn)
@@ -64,35 +64,35 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 	}
 	wasiEnv, err := bld.MapDirectory(conf.BaseDir, ".").CaptureStdout().CaptureStderr().Finalize()
 	if err != nil {
-		slog.Error("build wasi", err)
+		slog.Error("build wasi", "error", err)
 		return err
 	}
 	engine := wasmer.NewEngine()
 	store := wasmer.NewStore(engine)
 	module, err := wasmer.NewModule(store, bytecode)
 	if err != nil {
-		slog.Error("wasmer module", err)
+		slog.Error("wasmer module", "error", err)
 		return err
 	}
 	slog.Debug("wasi", "version", wasmer.GetWasiVersion(module).String())
 	importObj, err := wasiEnv.GenerateImportObject(store, module)
 	if err != nil {
-		slog.Error("import object", err)
+		slog.Error("import object", "error", err)
 		return err
 	}
 	instance, err := wasmer.NewInstance(module, importObj)
 	if err != nil {
-		slog.Error("new instance", err)
+		slog.Error("new instance", "error", err)
 		return err
 	}
 	start, err := instance.Exports.GetWasiStartFunction()
 	if err != nil {
-		slog.Error("wasi start", err)
+		slog.Error("wasi start", "error", err)
 	}
 	slog.Debug("run wasi")
 	res, err := start()
 	if err != nil {
-		slog.Error("wasi function returns error", err)
+		slog.Error("wasi function returns error", "error", err)
 		return err
 	}
 	var wg sync.WaitGroup

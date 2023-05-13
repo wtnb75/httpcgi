@@ -23,20 +23,20 @@ func (runner WasmtimeRunner) Run(conf SrvConfig, cmdname string, envvar map[stri
 	fn := filepath.Join(conf.BaseDir, cmdname)
 	bytecode, err := os.ReadFile(fn)
 	if err != nil {
-		slog.Error("read bytecode", err, "filename", fn)
+		slog.Error("read bytecode", "error", err, "filename", fn)
 		return err
 	}
 	slog.Debug("bytecode read", "length", len(bytecode), "filename", fn)
 	engine := wasmtime.NewEngine()
 	module, err := wasmtime.NewModule(engine, bytecode)
 	if err != nil {
-		slog.Error("wasmtime module", err)
+		slog.Error("wasmtime module", "error", err)
 		return err
 	}
 	linker := wasmtime.NewLinker(engine)
 	err = linker.DefineWasi()
 	if err != nil {
-		slog.Error("define wasi", err)
+		slog.Error("define wasi", "error", err)
 		return err
 	}
 	wasiConfig := wasmtime.NewWasiConfig()
@@ -49,7 +49,7 @@ func (runner WasmtimeRunner) Run(conf SrvConfig, cmdname string, envvar map[stri
 	wasiConfig.SetEnv(keys, vals)
 	dir, err := os.MkdirTemp("", "out")
 	if err != nil {
-		slog.Error("mkdtemp", err)
+		slog.Error("mkdtemp", "error", err)
 		return err
 	}
 	defer os.RemoveAll(dir)
@@ -59,13 +59,13 @@ func (runner WasmtimeRunner) Run(conf SrvConfig, cmdname string, envvar map[stri
 	stdinPath := filepath.Join(dir, "stdin")
 	stdinFp, err := os.OpenFile(stdinPath, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
-		slog.Error("open stdin", err)
+		slog.Error("open stdin", "error", err)
 		return err
 	}
 	io.Copy(stdinFp, stdin)
 	err = stdinFp.Close()
 	if err != nil {
-		slog.Error("stdin close", err)
+		slog.Error("stdin close", "error", err)
 		return err
 	}
 	wasiConfig.SetStdinFile(stdinPath)
@@ -75,13 +75,13 @@ func (runner WasmtimeRunner) Run(conf SrvConfig, cmdname string, envvar map[stri
 	store.SetWasi(wasiConfig)
 	instance, err := linker.Instantiate(store, module)
 	if err != nil {
-		slog.Error("wasmtime instantiate", err)
+		slog.Error("wasmtime instantiate", "error", err)
 		return err
 	}
 	cgi := instance.GetFunc(store, "_start")
 	res, err := cgi.Call(store)
 	if err != nil {
-		slog.Error("wasmtime run", err)
+		slog.Error("wasmtime run", "error", err)
 	}
 	if res != nil {
 		slog.Debug("result", "res", res)
@@ -90,22 +90,22 @@ func (runner WasmtimeRunner) Run(conf SrvConfig, cmdname string, envvar map[stri
 	}
 	stdoutContent, err := os.ReadFile(stdoutPath)
 	if err != nil {
-		slog.Error("reading stdout", err)
+		slog.Error("reading stdout", "error", err)
 		return err
 	}
 	cnt, err := stdout.Write(stdoutContent)
 	if err != nil {
-		slog.Error("writing stdout", err)
+		slog.Error("writing stdout", "error", err)
 	} else {
 		slog.Debug("stdout", "cnt", cnt)
 	}
 	stderrContent, err := os.ReadFile(stderrPath)
 	if err != nil {
-		slog.Error("reading stderr", err)
+		slog.Error("reading stderr", "error", err)
 	} else if len(stderrContent) != 0 {
 		cnt, err := stderr.Write(stderrContent)
 		if err != nil {
-			slog.Error("writing stderr", err, "content", string(stderrContent))
+			slog.Error("writing stderr", "error", err, "content", string(stderrContent))
 		} else {
 			slog.Debug("stderr", "cnt", cnt, "content", string(stderrContent))
 		}

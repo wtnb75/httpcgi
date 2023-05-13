@@ -18,15 +18,15 @@ type OsRunner struct {
 func (runner *OsRunner) getPipe(cmd *exec.Cmd) (
 	stdin io.WriteCloser, stdout io.ReadCloser, stderr io.ReadCloser, err error) {
 	if stdin, err = cmd.StdinPipe(); err != nil {
-		slog.Error("stdin", err)
+		slog.Error("stdin", "error", err)
 		return
 	}
 	if stdout, err = cmd.StdoutPipe(); err != nil {
-		slog.Error("stdout", err)
+		slog.Error("stdout", "error", err)
 		return
 	}
 	if stderr, err = cmd.StderrPipe(); err != nil {
-		slog.Error("stderr", err)
+		slog.Error("stderr", "error", err)
 		return
 	}
 	return
@@ -41,7 +41,7 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	slog.Debug("pid", "process", cmd.Process)
 	cmdStdin, cmdStdout, cmdStderr, err := runner.getPipe(cmd)
 	if err != nil {
-		slog.Error("pipe error", err)
+		slog.Error("pipe error", "error", err)
 		return err
 	}
 	defer cmdStdin.Close()
@@ -57,26 +57,26 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	slog.Debug("pid", "process", cmd.Process)
 	defer func() {
 		if err := cmd.Wait(); err != nil {
-			slog.Error("wait", err)
+			slog.Error("wait", "error", err)
 		}
 	}()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		if err := DoPipe(stdin, cmdStdin, &wg); err != nil {
-			slog.Error("stdin", err)
+			slog.Error("stdin", "error", err)
 		}
 	}()
 	wg.Add(1)
 	go func() {
 		if err := DoPipe(cmdStderr, stderr, &wg); err != nil {
-			slog.Error("stderr", err)
+			slog.Error("stderr", "error", err)
 		}
 	}()
 	wg.Add(1)
 	go func() {
 		if err := DoPipe(cmdStdout, stdout, &wg); err != nil {
-			slog.Error("stdout", err)
+			slog.Error("stdout", "error", err)
 		}
 	}()
 	wg.Wait()

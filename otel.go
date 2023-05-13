@@ -30,7 +30,7 @@ func initSetup(exp sdktrace.SpanExporter) {
 func initOtelStdout() (func(), error) {
 	exp, err := stdouttrace.New()
 	if err != nil {
-		slog.Error("stdouttrace", err)
+		slog.Error("stdouttrace", "error", err)
 		return nil, err
 	}
 	initSetup(exp)
@@ -45,7 +45,7 @@ func initOtelJaeger() (func(), error) {
 	initSetup(exp)
 	return func() {
 		if err := exp.Shutdown(context.Background()); err != nil {
-			slog.Error("shutdown", err)
+			slog.Error("shutdown", "error", err)
 		}
 	}, nil
 }
@@ -58,7 +58,7 @@ func initOtelZipkin() (func(), error) {
 	initSetup(exp)
 	return func() {
 		if err := exp.Shutdown(context.Background()); err != nil {
-			slog.Error("shutdown", err)
+			slog.Error("shutdown", "error", err)
 		}
 	}, nil
 }
@@ -71,7 +71,7 @@ func initOtelOtlp() (func(), error) {
 	initSetup(exp)
 	return func() {
 		if err := exp.Shutdown(context.Background()); err != nil {
-			slog.Error("shutdown", err)
+			slog.Error("shutdown", "error", err)
 		}
 	}, nil
 }
@@ -84,7 +84,7 @@ func initOtelOtlpHttp() (func(), error) {
 	initSetup(exp)
 	return func() {
 		if err := exp.Shutdown(context.Background()); err != nil {
-			slog.Error("shutdown", err)
+			slog.Error("shutdown", "error", err)
 		}
 	}, nil
 }
