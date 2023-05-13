@@ -61,42 +61,42 @@ func main() {
 	if opts.BaseDir == "" {
 		opts.BaseDir, err = os.Getwd()
 		if err != nil {
-			slog.Error("basedir not found", err)
+			slog.Error("basedir not found", "error", err)
 		}
 	}
 	if opts.Runner != "docker" {
 		opts.BaseDir, err = filepath.Abs(opts.BaseDir)
 	}
 	if err != nil {
-		slog.Error("abs", err)
+		slog.Error("abs", "error", err)
 	}
 	if opts.OtelProvider == "stdout" {
 		if fin, err := initOtelStdout(); err != nil {
-			slog.Error("otel-stdout", err)
+			slog.Error("otel-stdout", "error", err)
 		} else {
 			defer fin()
 		}
 	} else if opts.OtelProvider == "jaeger" {
 		if fin, err := initOtelJaeger(); err != nil {
-			slog.Error("otel-jaeger", err)
+			slog.Error("otel-jaeger", "error", err)
 		} else {
 			defer fin()
 		}
 	} else if opts.OtelProvider == "zipkin" {
 		if fin, err := initOtelZipkin(); err != nil {
-			slog.Error("otel-zipkin", err)
+			slog.Error("otel-zipkin", "error", err)
 		} else {
 			defer fin()
 		}
 	} else if opts.OtelProvider == "otlp" {
 		if fin, err := initOtelOtlp(); err != nil {
-			slog.Error("otel-otlp", err)
+			slog.Error("otel-otlp", "error", err)
 		} else {
 			defer fin()
 		}
 	} else if opts.OtelProvider == "otlp-http" {
 		if fin, err := initOtelOtlpHttp(); err != nil {
-			slog.Error("otel-otlp-http", err)
+			slog.Error("otel-otlp-http", "error", err)
 		} else {
 			defer fin()
 		}
@@ -117,12 +117,12 @@ func main() {
 	}
 	l, err := net.Listen(opts.Proto, opts.Addr)
 	if err != nil {
-		slog.Error("listen", err)
+		slog.Error("listen", "error", err)
 		return
 	}
 	slog.Info("listen", "addr", l.Addr(), "version", version, "commit", commit, "build-date", date)
 	if err := server.Serve(l); err != nil {
-		slog.Error("serve", err)
+		slog.Error("serve", "error", err)
 		return
 	}
 }
@@ -130,6 +130,6 @@ func main() {
 func (h *cgiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := RunBy(opts, runner, w, r)
 	if err != nil {
-		slog.Error("runby", err)
+		slog.Error("runby", "error", err)
 	}
 }

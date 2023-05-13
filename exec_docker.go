@@ -84,13 +84,13 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	cres, err := runner.cli.ContainerCreate(ctx, &contConfig, &hostConfig, nil, nil, "")
 	span2.AddEvent("done docker-create")
 	if err != nil {
-		slog.Error("containerCreate", err)
+		slog.Error("containerCreate", "error", err)
 		return err
 	}
 	defer runner.cli.ContainerRemove(ctx, cres.ID, types.ContainerRemoveOptions{})
 	slog.Debug("docker-start")
 	if err = runner.cli.ContainerStart(ctx, cres.ID, types.ContainerStartOptions{}); err != nil {
-		slog.Error("containerStart", err)
+		slog.Error("containerStart", "error", err)
 		return err
 	}
 	span2.AddEvent("done docker-start")
@@ -99,7 +99,7 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	select {
 	case err := <-errCh:
 		if err != nil {
-			slog.Error("execute error", err)
+			slog.Error("execute error", "error", err)
 			span2.AddEvent("execute error")
 			return err
 		}
@@ -112,7 +112,7 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	out, err := runner.cli.ContainerLogs(ctx, cres.ID, types.ContainerLogsOptions{ShowStdout: true})
 	span2.AddEvent("done docker-logs")
 	if err != nil {
-		slog.Error("logs error", err)
+		slog.Error("logs error", "error", err)
 		return err
 	}
 
@@ -133,7 +133,7 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string, ctx context.Conte
 	span2.AddEvent("done imagelist")
 	if err != nil {
 		span2.SetStatus(codes.Error, "image list")
-		slog.Error("image list", err)
+		slog.Error("image list", "error", err)
 		return "", "", err
 	}
 	var name, pathinfo string
@@ -169,7 +169,7 @@ func init() {
 	runnerMap["docker"] = func(SrvConfig) Runner {
 		cl, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 		if err != nil {
-			slog.Error("docker client", err)
+			slog.Error("docker client", "error", err)
 			panic(fmt.Sprintf("docker client error: %s", err))
 		}
 		return DockerRunner{
