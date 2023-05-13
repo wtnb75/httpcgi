@@ -30,17 +30,12 @@ jobs:
           go test -tags wasmtime
           go test -tags docker
           go test -tags wazero
-      - name: git setting
-        run: |
-          git config --local user.name "GitHub Actions"
-          git config --local user.email "546304+github-actions[bot]@users.noreply.github.com"
-      - name: git commit/push
-        run: |
-          tag=version$(date +%Y%m%d)
-          sudo chown -R $(id -u):$(id -g) .git
-          git add go.mod go.sum
-          git diff --cached --name-only | grep -q go || exit 0
-          git checkout -b $tag
-          git commit -m 'update dependencies'
-          hub push origin $tag
-          hub pull-request -b ${GITHUB_REF##*/} -m "update deps $(date +%Y-%m-%d)"
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GH_PAT }}
+          commit-message: Update Dependencies
+          title: 'auto update dependencies'
+          add-paths: |
+             go.mod
+             go.sum
