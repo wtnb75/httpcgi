@@ -6,11 +6,11 @@ package main
 import (
 	"context"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/bytecodealliance/wasmtime-go"
-	"golang.org/x/exp/slog"
 )
 
 // WasmtimeRunner implements CGI Runner execute by wasmtime

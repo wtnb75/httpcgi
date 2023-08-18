@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os/exec"
 	"path/filepath"
 	"sync"
-
-	"golang.org/x/exp/slog"
 )
 
 // OsRunner is normal CGI executor

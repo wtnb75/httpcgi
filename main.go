@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/jessevdk/go-flags"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"golang.org/x/exp/slog"
 )
 
 var (
