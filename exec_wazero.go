@@ -5,12 +5,13 @@ package main
 
 import (
 	"context"
-	"github.com/tetratelabs/wazero"
-	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
-	"golang.org/x/exp/slog"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
 // WazeroRunner implements CGI Runner execute by wasmer

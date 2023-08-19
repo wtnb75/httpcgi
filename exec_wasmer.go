@@ -6,12 +6,12 @@ package main
 import (
 	"context"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/wasmerio/wasmer-go/wasmer"
-	"golang.org/x/exp/slog"
 )
 
 // WasmerRunner implements CGI Runner execute by wasmer

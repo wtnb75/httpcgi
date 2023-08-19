@@ -1,6 +1,6 @@
 module github.com/wtnb75/httpcgi
 
-go 1.19
+go 1.21
 
 require (
 	github.com/bytecodealliance/wasmtime-go v1.0.0
@@ -19,7 +19,6 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.16.0
 	go.opentelemetry.io/otel/exporters/zipkin v1.16.0
 	go.opentelemetry.io/otel/sdk v1.16.0
-	golang.org/x/exp v0.0.0-20230809094429-853ea248256d
 )
 
 require (
