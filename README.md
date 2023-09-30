@@ -39,7 +39,7 @@ Application Options:
       --json-log
       --runner=name
   -V, --version
-      --opentelemetry=[stdout|jaeger|zipkin|otlp|otlp-http]
+      --opentelemetry=[stdout|zipkin|otlp|otlp-http]
 
 Help Options:
   -h, --help                                         Show this help message

@@ -76,12 +76,6 @@ func main() {
 		} else {
 			defer fin()
 		}
-	} else if opts.OtelProvider == "jaeger" {
-		if fin, err := initOtelJaeger(); err != nil {
-			slog.Error("otel-jaeger", "error", err)
-		} else {
-			defer fin()
-		}
 	} else if opts.OtelProvider == "zipkin" {
 		if fin, err := initOtelZipkin(); err != nil {
 			slog.Error("otel-zipkin", "error", err)
