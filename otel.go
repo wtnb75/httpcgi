@@ -6,7 +6,6 @@ import (
 
 	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
@@ -35,19 +34,6 @@ func initOtelStdout() (func(), error) {
 	}
 	initSetup(exp)
 	return func() {}, nil
-}
-
-func initOtelJaeger() (func(), error) {
-	exp, err := jaeger.New(jaeger.WithCollectorEndpoint())
-	if err != nil {
-		return nil, err
-	}
-	initSetup(exp)
-	return func() {
-		if err := exp.Shutdown(context.Background()); err != nil {
-			slog.Error("shutdown", "error", err)
-		}
-	}, nil
 }
 
 func initOtelZipkin() (func(), error) {

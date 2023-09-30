@@ -11,5 +11,5 @@ type SrvConfigBase struct {
 	JSONLog      bool   `long:"json-log"`
 	Runner       string `long:"runner" default:"os" value-name:"name"`
 	Version      bool   `short:"V" long:"version"`
-	OtelProvider string `long:"opentelemetry" choice:"stdout" choice:"jaeger" choice:"zipkin" choice:"otlp" choice:"otlp-http"`
+	OtelProvider string `long:"opentelemetry" choice:"stdout" choice:"zipkin" choice:"otlp" choice:"otlp-http"`
 }
