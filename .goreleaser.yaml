@@ -1,4 +1,14 @@
 project_name: httpcgi
+
+builds:
+  - env:
+    - CGO_ENABLED=0
+    goos:
+    - linux
+    goarch:
+    - amd64
+    - arm64
+
 dockers:
   - image_templates:
     - ghcr.io/wtnb75/{{ .ProjectName }}:latest-amd64
