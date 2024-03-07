@@ -9,10 +9,11 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testWasmOpenError(t *testing.T, runner Runner) {
-	conf := SrvConfig{}
+	conf := SrvConfig{SrvConfigBase{Timeout: time.Duration(1000_000_000)}}
 	fname := "test.wasm"
 	stdin := io.NopCloser(bytes.NewBufferString(""))
 	stdout := &bytes.Buffer{}
@@ -27,6 +28,7 @@ func testWasmOpenError(t *testing.T, runner Runner) {
 
 func testWasmHello(t *testing.T, runner Runner) {
 	conf := SrvConfig{}
+	conf.Timeout = time.Duration(1000_000_000)
 	conf.BaseDir = "examples"
 	fname := "hello.wasm"
 	stdin := io.NopCloser(bytes.NewBufferString(""))

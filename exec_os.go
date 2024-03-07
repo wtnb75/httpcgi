@@ -78,7 +78,13 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 			slog.Error("stdout", "error", err)
 		}
 	}()
-	wg.Wait()
+	if timeoutWait(&wg, conf.Timeout){
+		slog.Warn("timeout")
+		if err := cmd.Process.Kill(); err != nil{
+			slog.Error("kill failed", "error", err)
+		}
+		return fmt.Errorf("timeout %v", conf.Timeout)
+	}
 	return nil
 }
 

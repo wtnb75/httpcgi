@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 type SrvConfigBase struct {
 	Verbose      bool   `short:"v" long:"verbose" description:"log verbose"`
 	Quiet        bool   `short:"q" long:"quiet" description:"log quiet"`
@@ -12,4 +14,5 @@ type SrvConfigBase struct {
 	Runner       string `long:"runner" default:"os" value-name:"name"`
 	Version      bool   `short:"V" long:"version"`
 	OtelProvider string `long:"opentelemetry" choice:"stdout" choice:"zipkin" choice:"otlp" choice:"otlp-http"`
+	Timeout      time.Duration `short:"t" long:"timeout" default:"1m"`
 }

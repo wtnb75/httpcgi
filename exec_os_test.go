@@ -7,12 +7,14 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestOsExists(t *testing.T) {
 	t.Parallel()
 	runner := OsRunner{}
 	conf := SrvConfig{}
+	conf.Timeout = time.Duration(1000_000_000)
 	tmpd, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Error("tmpdir", err)
@@ -53,6 +55,7 @@ func TestOsRun(t *testing.T) {
 	t.Parallel()
 	runner := OsRunner{}
 	conf := SrvConfig{}
+	conf.Timeout = time.Duration(1000_000_000)
 	tmpd, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Error("tmpdir", err)
@@ -76,5 +79,29 @@ func TestOsRun(t *testing.T) {
 	}
 	if stderr.Len() != 0 {
 		t.Error("out", stderr.String())
+	}
+}
+
+func TestOsRunTimeout(t *testing.T) {
+	t.Parallel()
+	runner := OsRunner{}
+	conf := SrvConfig{}
+	tmpd, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Error("tmpdir", err)
+	}
+	defer os.RemoveAll(tmpd)
+	conf.BaseDir = tmpd
+	ctx := context.Background()
+	if err = os.WriteFile(filepath.Join(tmpd, "cmd1"), []byte("#! /bin/sh\nsleep 10"), 0755); err != nil {
+		t.Error("writefile", err)
+	}
+	env := map[string]string{}
+	stdin := io.NopCloser(&bytes.Buffer{})
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	err = runner.Run(conf, "cmd1", env, stdin, stdout, stderr, ctx)
+	if err == nil {
+		t.Error("no timeout ?")
 	}
 }
