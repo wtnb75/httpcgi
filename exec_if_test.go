@@ -114,7 +114,8 @@ func (w writer) WriteHeader(statusCode int) {
 
 func TestRunBy(t *testing.T) {
 	t.Parallel()
-	opts := SrvConfig{SrvConfigBase{Timeout: time.Duration(1000_000_000)}}
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
 	opts.Addr = ":9999"
 	opts.BaseDir = "."
 	runner := runner1{}
@@ -143,7 +144,8 @@ func TestRunBy(t *testing.T) {
 
 func TestRunByStatusCode(t *testing.T) {
 	t.Parallel()
-	opts := SrvConfig{SrvConfigBase{Timeout: time.Duration(1000_000_000)}}
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
 	opts.Addr = ":9999"
 	opts.BaseDir = "."
 	runner := runner2{}

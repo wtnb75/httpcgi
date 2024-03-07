@@ -13,7 +13,8 @@ import (
 func TestOsExists(t *testing.T) {
 	t.Parallel()
 	runner := OsRunner{}
-	conf := SrvConfig{SrvConfigBase{Timeout: time.Duration(1000_000_000)}}
+	conf := SrvConfig{}
+	conf.Timeout = time.Duration(1000_000_000)
 	tmpd, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Error("tmpdir", err)
@@ -53,7 +54,8 @@ func TestOsExists(t *testing.T) {
 func TestOsRun(t *testing.T) {
 	t.Parallel()
 	runner := OsRunner{}
-	conf := SrvConfig{SrvConfigBase{Timeout: time.Duration(1000_000_000)}}
+	conf := SrvConfig{}
+	conf.Timeout = time.Duration(1000_000_000)
 	tmpd, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Error("tmpdir", err)

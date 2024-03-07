@@ -27,7 +27,8 @@ func testWasmOpenError(t *testing.T, runner Runner) {
 }
 
 func testWasmHello(t *testing.T, runner Runner) {
-	conf := SrvConfig{SrvConfigBase{Timeout: time.Duration(1000_000_000)}}
+	conf := SrvConfig{}
+	conf.Timeout = time.Duration(1000_000_000)
 	conf.BaseDir = "examples"
 	fname := "hello.wasm"
 	stdin := io.NopCloser(bytes.NewBufferString(""))
