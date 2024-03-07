@@ -114,7 +114,7 @@ func main() {
 		slog.Error("listen", "error", err)
 		return
 	}
-	slog.Info("listen", "addr", l.Addr(), "version", version, "commit", commit, "build-date", date)
+	slog.Info("listen", "addr", l.Addr(), "version", version, "commit", commit, "build-date", date, "timeout", opts.Timeout)
 	if err := server.Serve(l); err != nil {
 		slog.Error("serve", "error", err)
 		return

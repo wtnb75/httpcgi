@@ -7,12 +7,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"testing"
+	"time"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/golang/mock/gomock"
 	"github.com/wtnb75/httpcgi/mock_client"
-	"io"
-	"testing"
 )
 
 func TestDockerExists(t *testing.T) {
@@ -26,7 +28,7 @@ func TestDockerExists(t *testing.T) {
 		},
 	}
 	runner := DockerRunner{cli: cli}
-	conf := SrvConfig{}
+	conf := SrvConfig{SrvConfigBase{Timeout: time.Duration(1000_000_000)}}
 	conf.BaseDir = "base/"
 	conf.Suffix = ":latest"
 	t.Run("pathinfo", func(t *testing.T) {
@@ -80,7 +82,7 @@ func TestDockerExistsAPIError(t *testing.T) {
 	images := []types.ImageSummary{}
 	cli.EXPECT().ImageList(gomock.Any(), gomock.Any()).Return(images, fmt.Errorf("error"))
 	runner := DockerRunner{cli: cli}
-	conf := SrvConfig{}
+	conf := SrvConfig{SrvConfigBase{Timeout: time.Duration(1000_000_000)}}
 	path := "path1"
 	name, path, err := runner.Exists(conf, "path1/info", context.Background())
 	if name != "" {
@@ -101,7 +103,7 @@ func TestDockerRun(t *testing.T) {
 	defer ctrl.Finish()
 	cli := mock_client.NewMockAPIClient(ctrl)
 	runner := DockerRunner{cli: cli}
-	conf := SrvConfig{}
+	conf := SrvConfig{SrvConfigBase{Timeout: time.Duration(1000_000_000)}}
 	conf.DockerMounts = []string{"dir_from1:dir_to2:ro", "dir_from2:dir_to2", "tmp:tmp:tmpfs,rw"}
 	envs := map[string]string{"hello": "world"}
 	stdin := io.NopCloser(bytes.NewBufferString("hello"))

@@ -200,3 +200,17 @@ func DoPipe(input io.Reader, output io.Writer, wg *sync.WaitGroup) error {
 	slog.Debug("pipe", "length", ilen)
 	return nil
 }
+
+func timeoutWait(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func(){
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false  // normal
+	case <-time.After(timeout):
+		return true   // timeout
+	}
+}
