@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/bytecodealliance/wasmtime-go v1.0.0
-	github.com/docker/docker v25.0.3+incompatible
+	github.com/docker/docker v26.0.0+incompatible
 	github.com/golang/mock v1.6.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/opencontainers/image-spec v1.1.0
