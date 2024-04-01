@@ -10,8 +10,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -87,9 +87,9 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 		slog.Error("containerCreate", "error", err)
 		return err
 	}
-	defer runner.cli.ContainerRemove(ctx, cres.ID, types.ContainerRemoveOptions{})
+	defer runner.cli.ContainerRemove(ctx, cres.ID, container.RemoveOptions{})
 	slog.Debug("docker-start")
-	if err = runner.cli.ContainerStart(ctx, cres.ID, types.ContainerStartOptions{}); err != nil {
+	if err = runner.cli.ContainerStart(ctx, cres.ID, container.StartOptions{}); err != nil {
 		slog.Error("containerStart", "error", err)
 		return err
 	}
@@ -109,7 +109,7 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	span2.AddEvent("done docker-wait")
 
 	slog.Debug("docker-logs")
-	out, err := runner.cli.ContainerLogs(ctx, cres.ID, types.ContainerLogsOptions{ShowStdout: true})
+	out, err := runner.cli.ContainerLogs(ctx, cres.ID, container.LogsOptions{ShowStdout: true})
 	span2.AddEvent("done docker-logs")
 	if err != nil {
 		slog.Error("logs error", "error", err)
@@ -125,7 +125,7 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 func (runner DockerRunner) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
 	_, span2 := otel.Tracer("").Start(ctx, "docker-exists")
 	defer span2.End()
-	imgOpts := types.ImageListOptions{
+	imgOpts := image.ListOptions{
 		All:            false,
 		ContainerCount: false,
 	}
