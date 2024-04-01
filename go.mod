@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/bytecodealliance/wasmtime-go v1.0.0
-	github.com/docker/docker v25.0.3+incompatible
+	github.com/docker/docker v26.0.0+incompatible
 	github.com/golang/mock v1.6.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/opencontainers/image-spec v1.1.0
@@ -33,6 +33,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1 // indirect
+	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/term v0.0.0-20221205130635-1aeaba878587 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect

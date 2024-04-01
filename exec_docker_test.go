@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/golang/mock/gomock"
 	"github.com/wtnb75/httpcgi/mock_client"
 )
@@ -22,8 +22,8 @@ func TestDockerExists(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	cli := mock_client.NewMockAPIClient(ctrl)
-	images := []types.ImageSummary{
-		types.ImageSummary{
+	images := []image.Summary{
+		image.Summary{
 			RepoTags: []string{"base/tag123:v1.0.0", "xyz/tag234:latest", "base/path1:latest"},
 		},
 	}
@@ -80,7 +80,7 @@ func TestDockerExistsAPIError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	cli := mock_client.NewMockAPIClient(ctrl)
-	images := []types.ImageSummary{}
+	images := []image.Summary{}
 	cli.EXPECT().ImageList(gomock.Any(), gomock.Any()).Return(images, fmt.Errorf("error"))
 	runner := DockerRunner{cli: cli}
 	conf := SrvConfig{}
