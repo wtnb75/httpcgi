@@ -203,14 +203,14 @@ func DoPipe(input io.Reader, output io.Writer, wg *sync.WaitGroup) error {
 
 func timeoutWait(wg *sync.WaitGroup, timeout time.Duration) bool {
 	c := make(chan struct{})
-	go func(){
+	go func() {
 		defer close(c)
 		wg.Wait()
 	}()
 	select {
 	case <-c:
-		return false  // normal
+		return false // normal
 	case <-time.After(timeout):
-		return true   // timeout
+		return true // timeout
 	}
 }

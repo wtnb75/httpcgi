@@ -23,7 +23,7 @@ func TestDockerExists(t *testing.T) {
 	defer ctrl.Finish()
 	cli := mock_client.NewMockAPIClient(ctrl)
 	images := []image.Summary{
-		image.Summary{
+		{
 			RepoTags: []string{"base/tag123:v1.0.0", "xyz/tag234:latest", "base/path1:latest"},
 		},
 	}

@@ -100,7 +100,7 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 	go runner.pipeStdout(wasiEnv, stdout, &wg)
 	wg.Add(1)
 	go runner.pipeStderr(wasiEnv, stderr, &wg)
-	if timeoutWait(&wg, conf.Timeout){
+	if timeoutWait(&wg, conf.Timeout) {
 		slog.Warn("timeout")
 		return nil
 	}
