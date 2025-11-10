@@ -1,5 +1,4 @@
 //go:build wasmer
-// +build wasmer
 
 package main
 
@@ -18,10 +17,7 @@ import (
 type WasmerRunner struct {
 }
 
-func (runner *WasmerRunner) pipeStdout(wasiEnv *wasmer.WasiEnvironment, output io.Writer, wg *sync.WaitGroup) error {
-	if wg != nil {
-		defer wg.Done()
-	}
+func (runner *WasmerRunner) pipeStdout(wasiEnv *wasmer.WasiEnvironment, output io.Writer) error {
 	data := wasiEnv.ReadStdout()
 	slog.Info("stdout", "length", len(data))
 	dlen, err := output.Write(data)
@@ -33,10 +29,7 @@ func (runner *WasmerRunner) pipeStdout(wasiEnv *wasmer.WasiEnvironment, output i
 	return nil
 }
 
-func (runner *WasmerRunner) pipeStderr(wasiEnv *wasmer.WasiEnvironment, output io.Writer, wg *sync.WaitGroup) error {
-	if wg != nil {
-		defer wg.Done()
-	}
+func (runner *WasmerRunner) pipeStderr(wasiEnv *wasmer.WasiEnvironment, output io.Writer) error {
 	data := wasiEnv.ReadStderr()
 	slog.Info("stderr", "length", len(data))
 	dlen, err := output.Write(data)
@@ -96,11 +89,9 @@ func (runner *WasmerRunner) Run(conf SrvConfig, cmdname string, envvar map[strin
 		return err
 	}
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go runner.pipeStdout(wasiEnv, stdout, &wg)
-	wg.Add(1)
-	go runner.pipeStderr(wasiEnv, stderr, &wg)
-	if timeoutWait(&wg, conf.Timeout){
+	wg.Go(func() { runner.pipeStdout(wasiEnv, stdout) })
+	wg.Go(func() { runner.pipeStderr(wasiEnv, stderr) })
+	if timeoutWait(&wg, conf.Timeout) {
 		slog.Warn("timeout")
 		return nil
 	}

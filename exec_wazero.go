@@ -1,5 +1,4 @@
 //go:build wazero
-// +build wazero
 
 package main
 

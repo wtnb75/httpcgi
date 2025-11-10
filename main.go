@@ -70,25 +70,27 @@ func main() {
 	if err != nil {
 		slog.Error("abs", "error", err)
 	}
-	if opts.OtelProvider == "stdout" {
+	switch opts.OtelProvider {
+
+	case "stdout":
 		if fin, err := initOtelStdout(); err != nil {
 			slog.Error("otel-stdout", "error", err)
 		} else {
 			defer fin()
 		}
-	} else if opts.OtelProvider == "zipkin" {
+	case "zipkin":
 		if fin, err := initOtelZipkin(); err != nil {
 			slog.Error("otel-zipkin", "error", err)
 		} else {
 			defer fin()
 		}
-	} else if opts.OtelProvider == "otlp" {
+	case "otlp":
 		if fin, err := initOtelOtlp(); err != nil {
 			slog.Error("otel-otlp", "error", err)
 		} else {
 			defer fin()
 		}
-	} else if opts.OtelProvider == "otlp-http" {
+	case "otlp-http":
 		if fin, err := initOtelOtlpHttp(); err != nil {
 			slog.Error("otel-otlp-http", "error", err)
 		} else {
