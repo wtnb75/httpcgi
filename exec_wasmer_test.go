@@ -1,5 +1,4 @@
 //go:build wasmer
-// +build wasmer
 
 package main
 

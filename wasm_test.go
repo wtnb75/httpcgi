@@ -1,5 +1,4 @@
 //go:build wazero || wasmtime || wasmer
-// +build wazero wasmtime wasmer
 
 package main
 

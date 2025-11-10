@@ -165,7 +165,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		carrier := propagation.MapCarrier{}
 		otel.GetTextMapPropagator().Inject(ctx, carrier)
 		for k, v := range carrier {
-			escaped := strings.Replace(strings.ToUpper(k), "-", "_", -1)
+			escaped := strings.ReplaceAll(strings.ToUpper(k), "-", "_")
 			env[fmt.Sprintf("HTTP_%s", escaped)] = v
 		}
 	}
