@@ -60,27 +60,24 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 		}
 	}()
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		if err := DoPipe(stdin, cmdStdin, &wg); err != nil {
+	wg.Go(func() {
+		if err := DoPipe(stdin, cmdStdin); err != nil {
 			slog.Error("stdin", "error", err)
 		}
-	}()
-	wg.Add(1)
-	go func() {
-		if err := DoPipe(cmdStderr, stderr, &wg); err != nil {
+	})
+	wg.Go(func() {
+		if err := DoPipe(cmdStderr, stderr); err != nil {
 			slog.Error("stderr", "error", err)
 		}
-	}()
-	wg.Add(1)
-	go func() {
-		if err := DoPipe(cmdStdout, stdout, &wg); err != nil {
+	})
+	wg.Go(func() {
+		if err := DoPipe(cmdStdout, stdout); err != nil {
 			slog.Error("stdout", "error", err)
 		}
-	}()
-	if timeoutWait(&wg, conf.Timeout){
+	})
+	if timeoutWait(&wg, conf.Timeout) {
 		slog.Warn("timeout")
-		if err := cmd.Process.Kill(); err != nil{
+		if err := cmd.Process.Kill(); err != nil {
 			slog.Error("kill failed", "error", err)
 		}
 		return fmt.Errorf("timeout %v", conf.Timeout)

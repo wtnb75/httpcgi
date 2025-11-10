@@ -30,10 +30,7 @@ type Runner interface {
 }
 
 // OutputFilter converts CGI output to http.ResponseWriter
-func OutputFilter(stdout io.Reader, w http.ResponseWriter, wg *sync.WaitGroup) error {
-	if wg != nil {
-		defer wg.Done()
-	}
+func OutputFilter(stdout io.Reader, w http.ResponseWriter) error {
 	rd := bufio.NewReader(stdout)
 	statusCode := http.StatusOK
 	for {
@@ -156,13 +153,12 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	}
 	pr, pw := io.Pipe()
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		if err := OutputFilter(pr, w, &wg); err != nil {
+	wg.Go(func() {
+		if err := OutputFilter(pr, w); err != nil {
 			slog.Error("output filter", "error", err)
 		}
 		span.AddEvent("ofilter finished")
-	}()
+	})
 	_, span2 := otel.Tracer("").Start(ctx, "run")
 	span2.SetAttributes(attribute.String("script", bn2))
 	if span2.IsRecording() {
@@ -187,11 +183,8 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	return nil
 }
 
-// DoPipe calls io.Copy() and wg.Done()
-func DoPipe(input io.Reader, output io.Writer, wg *sync.WaitGroup) error {
-	if wg != nil {
-		defer wg.Done()
-	}
+// DoPipe calls io.Copy()
+func DoPipe(input io.Reader, output io.Writer) error {
 	ilen, err := io.Copy(output, input)
 	if err != nil {
 		slog.Error("pipe error:", "error", err)
@@ -203,14 +196,14 @@ func DoPipe(input io.Reader, output io.Writer, wg *sync.WaitGroup) error {
 
 func timeoutWait(wg *sync.WaitGroup, timeout time.Duration) bool {
 	c := make(chan struct{})
-	go func(){
+	go func() {
 		defer close(c)
 		wg.Wait()
 	}()
 	select {
 	case <-c:
-		return false  // normal
+		return false // normal
 	case <-time.After(timeout):
-		return true   // timeout
+		return true // timeout
 	}
 }

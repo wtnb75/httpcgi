@@ -47,12 +47,13 @@ func TestDoPipeWriteClose(t *testing.T) {
 	rd, wr := io.Pipe()
 	var wg sync.WaitGroup
 	wr.Close()
-	wg.Add(1)
-	err := DoPipe(rd, wr, &wg)
+	wg.Go(func() {
+		err := DoPipe(rd, wr)
+		if err != nil {
+			t.Errorf("pipe error: %s", err)
+		}
+	})
 	wg.Wait()
-	if err != nil {
-		t.Errorf("pipe error: %s", err)
-	}
 }
 
 func TestDoPipeReadClose(t *testing.T) {
@@ -60,12 +61,13 @@ func TestDoPipeReadClose(t *testing.T) {
 	rd, wr := io.Pipe()
 	var wg sync.WaitGroup
 	rd.Close()
-	wg.Add(1)
-	err := DoPipe(rd, wr, &wg)
+	wg.Go(func() {
+		err := DoPipe(rd, wr)
+		if err == nil {
+			t.Error("pipe no-error")
+		}
+	})
 	wg.Wait()
-	if err == nil {
-		t.Error("pipe no-error")
-	}
 }
 
 type runner1 struct{}
