@@ -74,6 +74,10 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter) error {
 
 func splitPathInfo(basedir string, path string, suffix string) (string, string, error) {
 	ret := path
+	if strings.Contains(path, "..") {
+		slog.Warn("skip suspicious path", "path", path)
+		return "", "", fmt.Errorf("not found %s", path)
+	}
 	for ret != "" && ret != "." && ret != "/" {
 		slog.Debug("check", "path", path, "basedir", basedir, "cur", ret)
 		if strings.HasSuffix(ret, suffix) {
@@ -122,7 +126,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		slog.Error("not found", "error", err, "basename", bn)
 		span.SetStatus(codes.Error, "not found")
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintln(w, bn, "not found")
+		fmt.Fprintln(w, "not found")
 		return err
 	}
 	slog.Debug("memo(path)", "bn", bn, "bn2", bn2, "rest", rest)
