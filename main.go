@@ -78,12 +78,6 @@ func main() {
 		} else {
 			defer fin()
 		}
-	case "zipkin":
-		if fin, err := initOtelZipkin(); err != nil {
-			slog.Error("otel-zipkin", "error", err)
-		} else {
-			defer fin()
-		}
 	case "otlp":
 		if fin, err := initOtelOtlp(); err != nil {
 			slog.Error("otel-otlp", "error", err)

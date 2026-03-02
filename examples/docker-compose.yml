@@ -9,8 +9,6 @@ services:
             - "--providers.docker.exposedbydefault=false"
             - "--entrypoints.web.address=:80"
             - "--accesslog=true"
-            - "--tracing.zipkin=true"
-            - "--tracing.zipkin.httpEndpoint=http://zipkin:9411/api/v2/spans"
             # - "--tracing.jaeger=true"
             # - "--tracing.jaeger.collector.endpoint=http://jaeger:14268/api/traces?format=jaeger.thrift"
             # - "--tracing.jaeger.propagation=jaeger"
@@ -22,15 +20,6 @@ services:
             - "8080:8080"
         volumes:
             - "/var/run/docker.sock:/var/run/docker.sock:ro"
-
-    zipkin:
-        # http://localhost/zipkin
-        image: openzipkin/zipkin-slim:latest
-        labels:
-            - "traefik.enable=true"
-            - "traefik.http.services.zipkin.loadbalancer.server.port=9411"
-            - "traefik.http.routers.zipkin.rule=PathPrefix(`/zipkin`)"
-            - "traefik.http.routers.zipkin.entrypoints=web"
 
     jaeger:
         # http://localhost/jaeger
@@ -73,7 +62,7 @@ services:
             - OTEL_EXPORTER_JAEGER_PROTOCOL=http/thrift.binary
             - OTEL_PROPAGATORS=jaeger
             # - OTEL_PROPAGATORS=b3
-            - OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
+            # - OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
         labels:
             - "traefik.enable=true"
             - "traefik.http.services.httpcgi.loadbalancer.server.port=8080"
