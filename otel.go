@@ -9,7 +9,6 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
-	"go.opentelemetry.io/otel/exporters/zipkin"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
@@ -34,19 +33,6 @@ func initOtelStdout() (func(), error) {
 	}
 	initSetup(exp)
 	return func() {}, nil
-}
-
-func initOtelZipkin() (func(), error) {
-	exp, err := zipkin.New("")
-	if err != nil {
-		return nil, err
-	}
-	initSetup(exp)
-	return func() {
-		if err := exp.Shutdown(context.Background()); err != nil {
-			slog.Error("shutdown", "error", err)
-		}
-	}, nil
 }
 
 func initOtelOtlp() (func(), error) {
