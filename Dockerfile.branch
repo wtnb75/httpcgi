@@ -1,0 +1,17 @@
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
+ARG TARGETARCH
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o httpcgi .
+
+FROM scratch
+COPY --from=builder /build/httpcgi /
+ENTRYPOINT ["/httpcgi"]
+LABEL org.opencontainers.image.title=httpcgi
+LABEL org.opencontainers.image.description="run cgi"
+LABEL org.opencontainers.image.authors="Watanabe Takashi <wtnb75@gmail.com>"
+LABEL org.opencontainers.image.url="https://github.com/wtnb75/httpcgi"
+LABEL org.opencontainers.image.source="https://github.com/wtnb75/httpcgi"
+LABEL org.opencontainers.image.licenses=MIT
