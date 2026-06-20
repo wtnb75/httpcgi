@@ -3,6 +3,10 @@ name: update go.mod
 on:
   workflow_dispatch: {}
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update_deps:
 
@@ -33,7 +37,7 @@ jobs:
       - name: Create PR
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GH_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Update Dependencies
           title: 'auto update dependencies'
           add-paths: |
