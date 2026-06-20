@@ -114,6 +114,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		span.SetStatus(codes.Error, "split hostport")
 		slog.Error("split host port", "error", err)
+		httpStatus = http.StatusInternalServerError
 		return err
 	}
 	slog.Debug("memo", "host", host, "port", port)
@@ -125,6 +126,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		slog.Error("not found", "error", err, "basename", bn)
 		span.SetStatus(codes.Error, "not found")
+		httpStatus = http.StatusNotFound
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintln(w, "not found")
 		return err
