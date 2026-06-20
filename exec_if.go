@@ -30,14 +30,14 @@ type Runner interface {
 }
 
 // OutputFilter converts CGI output to http.ResponseWriter
-func OutputFilter(stdout io.Reader, w http.ResponseWriter) error {
+func OutputFilter(stdout io.Reader, w http.ResponseWriter) (int, error) {
 	rd := bufio.NewReader(stdout)
 	statusCode := http.StatusOK
 	for {
 		line, _, err := rd.ReadLine()
 		if err != nil {
 			slog.Error("read header error:", "error", err)
-			return err
+			return statusCode, err
 		}
 		if len(line) == 0 {
 			slog.Info("header finished")
@@ -47,7 +47,7 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter) error {
 		idx := strings.Index(linestr, ":")
 		if idx == -1 {
 			slog.Warn("header format error", "line", linestr)
-			return fmt.Errorf("invalid header format")
+			return statusCode, fmt.Errorf("invalid header format")
 		}
 		k := strings.TrimSpace(linestr[:idx])
 		v := strings.TrimSpace(linestr[idx+1:])
@@ -66,10 +66,10 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter) error {
 	olen, err := io.Copy(w, rd)
 	if err != nil {
 		slog.Error("write body error", "error", err)
-		return err
+		return statusCode, err
 	}
 	slog.Debug("write body", "length", olen)
-	return nil
+	return statusCode, nil
 }
 
 func splitPathInfo(basedir string, path string, suffix string) (string, string, error) {
@@ -157,10 +157,13 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	}
 	pr, pw := io.Pipe()
 	var wg sync.WaitGroup
+	var outputStatus int
 	wg.Go(func() {
-		if err := OutputFilter(pr, w); err != nil {
+		code, err := OutputFilter(pr, w)
+		if err != nil {
 			slog.Error("output filter", "error", err)
 		}
+		outputStatus = code
 		span.AddEvent("ofilter finished")
 	})
 	_, span2 := otel.Tracer("").Start(ctx, "run")
@@ -183,6 +186,9 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	}
 	pw.Close()
 	wg.Wait()
+	if httpStatus == http.StatusOK && outputStatus != 0 {
+		httpStatus = outputStatus
+	}
 	pr.Close()
 	return nil
 }
