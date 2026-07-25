@@ -1,4 +1,4 @@
-name: update go.mod
+name: update-deps
 
 on:
   workflow_dispatch: {}
@@ -8,38 +8,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  update_deps:
-
+  update-deps:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
-          cache: true
-      - run: go get -u
-      - run: go mod tidy
-      - name: Build
-        run: |
-          go build
-          go build -tags wasmer
-          go build -tags wasmtime
-          go build -tags docker
-          go build -tags wazero
-      - name: Test
-        run: |
-          go test
-          go test -tags wasmer
-          go test -tags wasmtime
-          go test -tags docker
-          go test -tags wazero
-      - name: Create PR
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: Update Dependencies
-          title: 'auto update dependencies'
-          add-paths: |
-             go.mod
-             go.sum
+    - uses: actions/checkout@v6
+    - uses: wtnb75/actions/golang@v1
+    - uses: wtnb75/actions/goupdate@v1
+      with:
+        go-test-args: "-v ./..."
