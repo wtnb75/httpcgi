@@ -17,7 +17,7 @@ import (
 var (
 	opts      SrvConfig
 	runner    Runner
-	runnerMap = map[string]interface{}{}
+	runnerMap = map[string]any{}
 	version   = "dev"
 	commit    = "none"
 	date      = "unknown"

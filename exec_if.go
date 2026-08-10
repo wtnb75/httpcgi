@@ -44,13 +44,13 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter) (int, error) {
 			break
 		}
 		linestr := string(line)
-		idx := strings.Index(linestr, ":")
-		if idx == -1 {
+		before, after, ok := strings.Cut(linestr, ":")
+		if !ok {
 			slog.Warn("header format error", "line", linestr)
 			return statusCode, fmt.Errorf("invalid header format")
 		}
-		k := strings.TrimSpace(linestr[:idx])
-		v := strings.TrimSpace(linestr[idx+1:])
+		k := strings.TrimSpace(before)
+		v := strings.TrimSpace(after)
 		if strings.ToLower(k) == "status" {
 			if n, err := fmt.Sscan(v, &statusCode); err != nil {
 				slog.Warn("status code error", "line", linestr)
