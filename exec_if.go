@@ -40,7 +40,7 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter) (int, error) {
 			return statusCode, err
 		}
 		if len(line) == 0 {
-			slog.Info("header finished")
+			slog.Debug("header finished")
 			break
 		}
 		linestr := string(line)
@@ -57,7 +57,7 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter) (int, error) {
 			if n, err := fmt.Sscan(v, &statusCode); err != nil {
 				slog.Warn("status code error", "line", linestr)
 			} else {
-				slog.Info("status code update", "n", n, "status", statusCode)
+				slog.Debug("status code update", "n", n, "status", statusCode)
 			}
 		} else {
 			slog.Debug("add-header", "key", k, "val", v)
@@ -181,6 +181,9 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		}
 	}
 	err = runner.Run(opts, bn2, env, r.Body, pw, log.Writer(), ctx)
+	if err != nil {
+		span2.SetStatus(codes.Error, "exec error")
+	}
 	span2.End()
 	if err != nil {
 		slog.Error("runner error", "error", err, "script", bn2, "method", r.Method, "remote-addr", r.RemoteAddr)
