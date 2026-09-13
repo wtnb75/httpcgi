@@ -15,4 +15,6 @@ type SrvConfigBase struct {
 	Version      bool          `short:"V" long:"version"`
 	OtelProvider string        `long:"opentelemetry" choice:"stdout" choice:"otlp" choice:"otlp-http"`
 	Timeout      time.Duration `short:"t" long:"timeout" default:"1m"`
+	RlimitCPU    int64         `long:"rlimit-cpu" value-name:"seconds" description:"os runner: CPU time limit for the CGI process (0=unlimited, Linux only)"`
+	RlimitMem    int64         `long:"rlimit-mem" value-name:"bytes" description:"os runner: address space limit for the CGI process (0=unlimited, Linux only)"`
 }

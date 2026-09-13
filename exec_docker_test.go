@@ -251,6 +251,56 @@ func TestDockerRunInvalidVolumeSpecIgnored(t *testing.T) {
 	}
 }
 
+type hostConfigResourcesMatcher struct {
+	memory   int64
+	nanoCPUs int64
+}
+
+func (m hostConfigResourcesMatcher) Matches(x any) bool {
+	hc, ok := x.(*container.HostConfig)
+	if !ok {
+		return false
+	}
+	return hc.Resources.Memory == m.memory && hc.Resources.NanoCPUs == m.nanoCPUs
+}
+
+func (m hostConfigResourcesMatcher) String() string {
+	return fmt.Sprintf("host config with Memory=%d NanoCPUs=%d", m.memory, m.nanoCPUs)
+}
+
+func TestDockerRunSetsResourceLimits(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	cli := mock_client.NewMockAPIClient(ctrl)
+	runner := DockerRunner{cli: cli}
+	conf := SrvConfig{}
+	conf.Timeout = time.Duration(1000_000_000)
+	conf.DockerMemory = 134217728 // 128MiB
+	conf.DockerCPUs = 1.5
+	envs := map[string]string{}
+	stdin := io.NopCloser(bytes.NewBufferString(""))
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cres := container.CreateResponse{ID: "id123"}
+	cli.EXPECT().ContainerCreate(
+		gomock.Any(), gomock.Any(),
+		hostConfigResourcesMatcher{memory: 134217728, nanoCPUs: 1_500_000_000},
+		nil, nil, "").Return(cres, nil)
+	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(nil)
+	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(nil)
+	ch_exit := make(chan container.WaitResponse, 1)
+	ch_err := make(chan error, 1)
+	cli.EXPECT().ContainerWait(gomock.Any(), "id123", container.WaitConditionNotRunning).Return(ch_exit, ch_err)
+	output := io.NopCloser(bytes.NewBuffer(nil))
+	cli.EXPECT().ContainerLogs(gomock.Any(), "id123", gomock.Any()).Return(output, nil)
+	ch_exit <- container.WaitResponse{}
+	err := runner.Run(conf, "path1", envs, stdin, stdout, stderr, context.Background())
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+}
+
 func TestDockerRun(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)

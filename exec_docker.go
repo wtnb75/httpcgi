@@ -80,6 +80,10 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	}
 	hostConfig := container.HostConfig{
 		Mounts: mounts,
+		Resources: container.Resources{
+			Memory:   conf.DockerMemory,
+			NanoCPUs: int64(conf.DockerCPUs * 1e9),
+		},
 	}
 	cres, err := runner.cli.ContainerCreate(ctx, &contConfig, &hostConfig, nil, nil, "")
 	span2.AddEvent("done docker-create")

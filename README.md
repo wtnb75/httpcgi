@@ -40,6 +40,9 @@ Application Options:
       --runner=name
   -V, --version
       --opentelemetry=[stdout|otlp|otlp-http]
+  -t, --timeout=
+      --rlimit-cpu=seconds
+      --rlimit-mem=bytes
 
 Help Options:
   -h, --help                                         Show this help message
@@ -52,6 +55,12 @@ Help Options:
 ## docker compose
 
 - [example configuration](./examples/docker-compose.yml)
+
+## resource limits
+
+- `os` runner (Linux only): `--rlimit-cpu=seconds` / `--rlimit-mem=bytes` apply `setrlimit`/`prlimit` (`RLIMIT_CPU` / `RLIMIT_AS`) to the CGI process right after it starts. Ignored (with a warning) on non-Linux platforms.
+- `docker` runner: `--docker-memory=bytes` / `--docker-cpus=cpus` map to the container's native `Memory` / `NanoCPUs` resource limits.
+- wasm runners (`wasmtime`/`wazero`/`wasmer`) are not covered yet; tracked separately in #147.
 
 ## known limitations
 
