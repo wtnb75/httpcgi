@@ -43,10 +43,16 @@ Application Options:
   -t, --timeout=
       --rlimit-cpu=seconds
       --rlimit-mem=bytes
+  -e, --env=KEY=VALUE
 
 Help Options:
   -h, --help                                         Show this help message
 ```
+
+## custom environment variables
+
+- `-e KEY=VALUE` / `--env=KEY=VALUE` sets an extra environment variable for the CGI process. Repeatable.
+- refuses to start the request (500 error) if `KEY` collides with a standard CGI variable (`REQUEST_METHOD`, `SCRIPT_NAME`, `HTTP_*`, etc.) already set by httpcgi.
 
 ## docker
 

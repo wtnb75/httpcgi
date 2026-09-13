@@ -74,6 +74,22 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter) (int, error) {
 	return statusCode, nil
 }
 
+// mergeExtraEnv adds "KEY=VALUE" entries into env, refusing to override any variable
+// already present (the standard CGI meta-variables and forwarded HTTP headers).
+func mergeExtraEnv(env map[string]string, extra []string) error {
+	for _, kv := range extra {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok {
+			return fmt.Errorf("invalid --env value %q: expected KEY=VALUE", kv)
+		}
+		if _, exists := env[k]; exists {
+			return fmt.Errorf("--env cannot override standard CGI variable %q", k)
+		}
+		env[k] = v
+	}
+	return nil
+}
+
 func splitPathInfo(basedir string, path string, suffix string) (string, string, error) {
 	ret := path
 	if strings.Contains(path, "..") {
@@ -158,6 +174,14 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	for k, v := range r.Header {
 		envname := fmt.Sprintf("HTTP_%s", strings.ReplaceAll(strings.ToUpper(k), "-", "_"))
 		env[envname] = strings.Join(v, ";")
+	}
+	if err := mergeExtraEnv(env, opts.Env); err != nil {
+		slog.Error("invalid --env", "error", err, "script", bn2)
+		span.SetStatus(codes.Error, "invalid --env")
+		httpStatus = http.StatusInternalServerError
+		w.WriteHeader(httpStatus)
+		fmt.Fprintf(w, "config error: %s", err)
+		return err
 	}
 	pr, pw := io.Pipe()
 	var wg sync.WaitGroup

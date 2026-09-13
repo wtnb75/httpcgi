@@ -131,6 +131,24 @@ func (runner runnerErr) Exists(conf SrvConfig, path string, ctx context.Context)
 	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
 }
 
+type runnerCaptureEnv struct {
+	env *map[string]string
+}
+
+func (runner runnerCaptureEnv) Run(conf SrvConfig, cmdname string, envvar map[string]string,
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, ctx context.Context) error {
+	*runner.env = envvar
+	fmt.Fprintln(stdout, "Status: 200")
+	fmt.Fprintln(stdout, "Content-Type: application/json")
+	fmt.Fprintln(stdout, "")
+	fmt.Fprintln(stdout, "{}")
+	return nil
+}
+
+func (runner runnerCaptureEnv) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
+	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
+}
+
 type runnerBadHeader struct{}
 
 func (runner runnerBadHeader) Run(conf SrvConfig, cmdname string, envvar map[string]string,
@@ -338,6 +356,102 @@ func TestRunBy(t *testing.T) {
 	expected := "status code = 200\n{\"hello\": true}\n"
 	if res != expected {
 		t.Errorf("status code %s != %s", res, expected)
+	}
+}
+
+func TestMergeExtraEnvAddsVariable(t *testing.T) {
+	t.Parallel()
+	env := map[string]string{"REQUEST_METHOD": "GET"}
+	if err := mergeExtraEnv(env, []string{"FOO=bar"}); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if env["FOO"] != "bar" {
+		t.Errorf("env[FOO] = %q, want %q", env["FOO"], "bar")
+	}
+}
+
+func TestMergeExtraEnvAddsMultipleVariables(t *testing.T) {
+	t.Parallel()
+	env := map[string]string{}
+	if err := mergeExtraEnv(env, []string{"FOO=1", "BAR=2"}); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if env["FOO"] != "1" || env["BAR"] != "2" {
+		t.Errorf("env = %v, want FOO=1 BAR=2", env)
+	}
+}
+
+func TestMergeExtraEnvRejectsMalformedEntry(t *testing.T) {
+	t.Parallel()
+	env := map[string]string{}
+	if err := mergeExtraEnv(env, []string{"NOEQUALSIGN"}); err == nil {
+		t.Error("expected error for entry without '='")
+	}
+}
+
+func TestMergeExtraEnvRejectsStandardVariableOverride(t *testing.T) {
+	t.Parallel()
+	env := map[string]string{"REQUEST_METHOD": "GET"}
+	err := mergeExtraEnv(env, []string{"REQUEST_METHOD=POST"})
+	if err == nil {
+		t.Fatal("expected error overriding REQUEST_METHOD")
+	}
+	if env["REQUEST_METHOD"] != "GET" {
+		t.Errorf("REQUEST_METHOD was overwritten to %q", env["REQUEST_METHOD"])
+	}
+}
+
+func TestRunByPassesExtraEnvToRunner(t *testing.T) {
+	t.Parallel()
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
+	opts.Addr = ":9999"
+	opts.BaseDir = "."
+	opts.Env = []string{"FOO=bar"}
+	var captured map[string]string
+	runner := runnerCaptureEnv{env: &captured}
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	r := http.Request{
+		Method:     http.MethodGet,
+		RemoteAddr: "127.0.0.1:9999",
+		URL:        u,
+		Proto:      "tcp",
+		RequestURI: "/exec_if_test.go",
+	}
+	if err := RunBy(opts, runner, &w, &r); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if captured["FOO"] != "bar" {
+		t.Errorf("envvar[FOO] = %q, want %q", captured["FOO"], "bar")
+	}
+}
+
+func TestRunByErrorsOnStandardEnvOverride(t *testing.T) {
+	t.Parallel()
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
+	opts.Addr = ":9999"
+	opts.BaseDir = "."
+	opts.Env = []string{"REQUEST_METHOD=POST"}
+	runner := runner1{}
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	r := http.Request{
+		Method:     http.MethodGet,
+		RemoteAddr: "127.0.0.1:9999",
+		URL:        u,
+		Proto:      "tcp",
+		RequestURI: "/exec_if_test.go",
+	}
+	err := RunBy(opts, runner, &w, &r)
+	if err == nil {
+		t.Fatal("expected error when --env overrides a standard CGI variable")
+	}
+	if !strings.Contains(w.out.String(), "status code = 500") {
+		t.Errorf("client did not receive a 500 response: %q", w.out.String())
 	}
 }
 
