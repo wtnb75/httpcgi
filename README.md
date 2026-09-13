@@ -52,3 +52,13 @@ Help Options:
 ## docker compose
 
 - [example configuration](./examples/docker-compose.yml)
+
+## known limitations
+
+- WASI stdin (request body / POST data)
+    - supported by the `wasmtime` and `wazero` runners
+    - **not supported** by the `wasmer` runner: the `wasmer-go` binding currently in use (v1.0.4) has no API to feed an `io.Reader` as WASI stdin (only `InheritStdin()`, which inherits the host process's own stdin). The request body is silently discarded for this runner. (#9)
+- orphaned child processes
+    - the `os` runner reaps the CGI process it starts directly, but it does **not** reap grandchild processes that a CGI script spawns and backgrounds (e.g. `some-daemon &`)
+    - if httpcgi runs as PID 1 (common in a minimal container), such orphans are reparented to it and can accumulate as zombies since nothing ever calls `wait()` for them
+    - recommendation: run httpcgi under an init process that reaps orphans (e.g. `docker run --init`, [tini](https://github.com/krallin/tini), or [dumb-init](https://github.com/Yelp/dumb-init)), or avoid backgrounding processes from CGI scripts (#84)
