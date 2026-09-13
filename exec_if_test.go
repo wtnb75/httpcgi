@@ -8,6 +8,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -398,6 +401,117 @@ func TestMergeExtraEnvRejectsStandardVariableOverride(t *testing.T) {
 	}
 	if env["REQUEST_METHOD"] != "GET" {
 		t.Errorf("REQUEST_METHOD was overwritten to %q", env["REQUEST_METHOD"])
+	}
+}
+
+func TestLoadEnvFilesReadsKeyValuePairs(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(path, []byte("FOO=bar\n# comment\n\nBAZ=qux\n"), 0o600); err != nil {
+		t.Fatalf("write temp env file: %s", err)
+	}
+	extra, err := loadEnvFiles([]string{path})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if !slices.Contains(extra, "FOO=bar") || !slices.Contains(extra, "BAZ=qux") {
+		t.Errorf("extra = %v, want to contain FOO=bar and BAZ=qux", extra)
+	}
+}
+
+func TestLoadEnvFilesMissingFile(t *testing.T) {
+	t.Parallel()
+	if _, err := loadEnvFiles([]string{filepath.Join(t.TempDir(), "does-not-exist.env")}); err == nil {
+		t.Error("expected error for missing env file")
+	}
+}
+
+func TestRunByLoadsEnvFile(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(path, []byte("FOO=bar\n"), 0o600); err != nil {
+		t.Fatalf("write temp env file: %s", err)
+	}
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
+	opts.Addr = ":9999"
+	opts.BaseDir = "."
+	opts.EnvFile = []string{path}
+	var captured map[string]string
+	runner := runnerCaptureEnv{env: &captured}
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	r := http.Request{
+		Method:     http.MethodGet,
+		RemoteAddr: "127.0.0.1:9999",
+		URL:        u,
+		Proto:      "tcp",
+		RequestURI: "/exec_if_test.go",
+	}
+	if err := RunBy(opts, runner, &w, &r); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if captured["FOO"] != "bar" {
+		t.Errorf("envvar[FOO] = %q, want %q", captured["FOO"], "bar")
+	}
+}
+
+func TestRunByErrorsOnMissingEnvFile(t *testing.T) {
+	t.Parallel()
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
+	opts.Addr = ":9999"
+	opts.BaseDir = "."
+	opts.EnvFile = []string{filepath.Join(t.TempDir(), "does-not-exist.env")}
+	runner := runner1{}
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	r := http.Request{
+		Method:     http.MethodGet,
+		RemoteAddr: "127.0.0.1:9999",
+		URL:        u,
+		Proto:      "tcp",
+		RequestURI: "/exec_if_test.go",
+	}
+	err := RunBy(opts, runner, &w, &r)
+	if err == nil {
+		t.Fatal("expected error for missing --env-file")
+	}
+	if !strings.Contains(w.out.String(), "status code = 500") {
+		t.Errorf("client did not receive a 500 response: %q", w.out.String())
+	}
+}
+
+func TestRunByErrorsOnEnvFileOverridingStandardVar(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(path, []byte("REQUEST_METHOD=POST\n"), 0o600); err != nil {
+		t.Fatalf("write temp env file: %s", err)
+	}
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
+	opts.Addr = ":9999"
+	opts.BaseDir = "."
+	opts.EnvFile = []string{path}
+	runner := runner1{}
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	r := http.Request{
+		Method:     http.MethodGet,
+		RemoteAddr: "127.0.0.1:9999",
+		URL:        u,
+		Proto:      "tcp",
+		RequestURI: "/exec_if_test.go",
+	}
+	err := RunBy(opts, runner, &w, &r)
+	if err == nil {
+		t.Fatal("expected error when --env-file overrides a standard CGI variable")
+	}
+	if !strings.Contains(w.out.String(), "status code = 500") {
+		t.Errorf("client did not receive a 500 response: %q", w.out.String())
 	}
 }
 

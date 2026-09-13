@@ -11,10 +11,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/joho/godotenv"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -88,6 +90,27 @@ func mergeExtraEnv(env map[string]string, extra []string) error {
 		env[k] = v
 	}
 	return nil
+}
+
+// loadEnvFiles reads .env-style files and returns their entries as "KEY=VALUE" strings,
+// sorted by key within each file, in the order the files were given.
+func loadEnvFiles(paths []string) ([]string, error) {
+	var extra []string
+	for _, path := range paths {
+		parsed, err := godotenv.Read(path)
+		if err != nil {
+			return nil, fmt.Errorf("--env-file %q: %w", path, err)
+		}
+		keys := make([]string, 0, len(parsed))
+		for k := range parsed {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		for _, k := range keys {
+			extra = append(extra, k+"="+parsed[k])
+		}
+	}
+	return extra, nil
 }
 
 func splitPathInfo(basedir string, path string, suffix string) (string, string, error) {
@@ -175,7 +198,17 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 		envname := fmt.Sprintf("HTTP_%s", strings.ReplaceAll(strings.ToUpper(k), "-", "_"))
 		env[envname] = strings.Join(v, ";")
 	}
-	if err := mergeExtraEnv(env, opts.Env); err != nil {
+	extraEnv, err := loadEnvFiles(opts.EnvFile)
+	if err != nil {
+		slog.Error("invalid --env-file", "error", err, "script", bn2)
+		span.SetStatus(codes.Error, "invalid --env-file")
+		httpStatus = http.StatusInternalServerError
+		w.WriteHeader(httpStatus)
+		fmt.Fprintf(w, "config error: %s", err)
+		return err
+	}
+	extraEnv = append(extraEnv, opts.Env...)
+	if err := mergeExtraEnv(env, extraEnv); err != nil {
 		slog.Error("invalid --env", "error", err, "script", bn2)
 		span.SetStatus(codes.Error, "invalid --env")
 		httpStatus = http.StatusInternalServerError

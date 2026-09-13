@@ -18,4 +18,5 @@ type SrvConfigBase struct {
 	RlimitCPU    int64         `long:"rlimit-cpu" value-name:"seconds" description:"os runner: CPU time limit for the CGI process (0=unlimited, Linux only)"`
 	RlimitMem    int64         `long:"rlimit-mem" value-name:"bytes" description:"os runner: address space limit for the CGI process (0=unlimited, Linux only)"`
 	Env          []string      `short:"e" long:"env" value-name:"KEY=VALUE" description:"extra environment variable for the CGI process (repeatable, cannot override standard CGI variables)"`
+	EnvFile      []string      `long:"env-file" value-name:"path" description:"load extra environment variables for the CGI process from a .env file (repeatable, applied before --env)"`
 }
