@@ -60,6 +60,15 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 			slog.Error("wait", "error", err, "cmd", cmdname)
 		}
 	}()
+	if conf.RlimitCPU > 0 || conf.RlimitMem > 0 {
+		if err := setProcessRlimits(cmd.Process.Pid, conf.RlimitCPU, conf.RlimitMem); err != nil {
+			slog.Error("set rlimit", "error", err, "cmd", cmdname)
+			if killErr := cmd.Process.Kill(); killErr != nil {
+				slog.Error("kill failed", "error", killErr, "cmd", cmdname)
+			}
+			return fmt.Errorf("set rlimit: %w", err)
+		}
+	}
 	var wg sync.WaitGroup
 	wg.Go(func() {
 		if err := DoPipe(stdin, cmdStdin); err != nil {
