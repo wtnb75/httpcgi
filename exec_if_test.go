@@ -12,6 +12,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 func TestSplit(t *testing.T) {
@@ -152,6 +156,70 @@ func captureLog(fn func()) string {
 	return buf.String()
 }
 
+type spanRecorder struct {
+	mu    sync.Mutex
+	spans []sdktrace.ReadOnlySpan
+}
+
+func (s *spanRecorder) ExportSpans(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.spans = append(s.spans, spans...)
+	return nil
+}
+
+func (s *spanRecorder) Shutdown(ctx context.Context) error {
+	return nil
+}
+
+// TestRunBySetsRunSpanErrorOnRunnerFailure must not call t.Parallel(): it swaps the global
+// TracerProvider, and every other test in this package calls t.Parallel() as its first
+// statement, so they pause before emitting spans and this test's body runs to completion,
+// restore included, before any of them execute (see captureLog for the same reasoning).
+func TestRunBySetsRunSpanErrorOnRunnerFailure(t *testing.T) {
+	rec := &spanRecorder{}
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(rec))
+	origTP := otel.GetTracerProvider()
+	otel.SetTracerProvider(tp)
+	defer otel.SetTracerProvider(origTP)
+	defer tp.Shutdown(context.Background())
+
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
+	opts.Addr = ":9999"
+	opts.BaseDir = "."
+	runner := runnerErr{}
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	r := http.Request{
+		Method:     http.MethodGet,
+		RemoteAddr: "127.0.0.1:9999",
+		URL:        u,
+		Proto:      "tcp",
+		RequestURI: "/exec_if_test.go",
+	}
+	_ = RunBy(opts, runner, &w, &r)
+
+	var found bool
+	for _, sp := range rec.spans {
+		if sp.Name() != "run" {
+			continue
+		}
+		for _, kv := range sp.Attributes() {
+			if string(kv.Key) == "script" {
+				found = true
+				if sp.Status().Code != codes.Error {
+					t.Errorf("CGI execution span status = %v, want Error", sp.Status().Code)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("did not find the CGI-execution 'run' span (with a script attribute)")
+	}
+}
+
 func TestRunByLogsRunnerError(t *testing.T) {
 	opts := SrvConfig{}
 	opts.Timeout = time.Duration(1000_000_000)
@@ -206,6 +274,23 @@ func TestRunByLogsOutputFilterError(t *testing.T) {
 	}
 	if !strings.Contains(logs, "remote-addr=127.0.0.1:9999") {
 		t.Errorf("output filter error log does not identify the requesting client: %s", logs)
+	}
+}
+
+func TestOutputFilterVerboseLogsAreDebugLevel(t *testing.T) {
+	stdout := bytes.NewBufferString("Status: 200\nContent-Type: text/plain\n\nhello\n")
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	logs := captureLog(func() {
+		if _, err := OutputFilter(stdout, w); err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	})
+	if strings.Contains(logs, "header finished") {
+		t.Errorf(`"header finished" is logged at Info level, want Debug: %s`, logs)
+	}
+	if strings.Contains(logs, "status code update") {
+		t.Errorf(`"status code update" is logged at Info level, want Debug: %s`, logs)
 	}
 }
 
