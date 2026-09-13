@@ -25,6 +25,26 @@ var (
 
 type cgiHandler struct{}
 
+// resolveBaseDir determines the absolute base directory to serve CGI scripts from.
+// docker's runner keeps the configured value as-is since it names an in-container path.
+func resolveBaseDir(runnerName string, baseDir string, getwd func() (string, error)) (string, error) {
+	if baseDir == "" {
+		cwd, err := getwd()
+		if err != nil {
+			return "", fmt.Errorf("basedir not found: %w", err)
+		}
+		baseDir = cwd
+	}
+	if runnerName != "docker" {
+		abs, err := filepath.Abs(baseDir)
+		if err != nil {
+			return "", fmt.Errorf("abs: %w", err)
+		}
+		baseDir = abs
+	}
+	return baseDir, nil
+}
+
 func main() {
 	args, err := flags.ParseArgs(&opts, os.Args)
 	if opts.Version {
@@ -58,17 +78,10 @@ func main() {
 	}
 	runner = runnerFn.(func(SrvConfig) Runner)(opts)
 	slog.Info("runner", "name", opts.Runner, "type", reflect.TypeOf(runner), "val", runner)
-	if opts.BaseDir == "" {
-		opts.BaseDir, err = os.Getwd()
-		if err != nil {
-			slog.Error("basedir not found", "error", err)
-		}
-	}
-	if opts.Runner != "docker" {
-		opts.BaseDir, err = filepath.Abs(opts.BaseDir)
-	}
+	opts.BaseDir, err = resolveBaseDir(opts.Runner, opts.BaseDir, os.Getwd)
 	if err != nil {
-		slog.Error("abs", "error", err)
+		slog.Error("resolve basedir", "error", err)
+		return
 	}
 	switch opts.OtelProvider {
 

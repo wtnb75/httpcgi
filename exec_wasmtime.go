@@ -61,7 +61,11 @@ func (runner WasmtimeRunner) Run(conf SrvConfig, cmdname string, envvar map[stri
 		slog.Error("open stdin", "error", err)
 		return err
 	}
-	io.Copy(stdinFp, stdin)
+	if _, err := io.Copy(stdinFp, stdin); err != nil {
+		slog.Error("stdin copy", "error", err)
+		stdinFp.Close()
+		return err
+	}
 	err = stdinFp.Close()
 	if err != nil {
 		slog.Error("stdin close", "error", err)

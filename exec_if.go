@@ -47,7 +47,9 @@ func OutputFilter(stdout io.Reader, w http.ResponseWriter) (int, error) {
 		before, after, ok := strings.Cut(linestr, ":")
 		if !ok {
 			slog.Warn("header format error", "line", linestr)
-			return statusCode, fmt.Errorf("invalid header format")
+			statusCode = http.StatusInternalServerError
+			w.WriteHeader(statusCode)
+			return statusCode, fmt.Errorf("invalid header format: %q", linestr)
 		}
 		k := strings.TrimSpace(before)
 		v := strings.TrimSpace(after)
