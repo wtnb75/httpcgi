@@ -43,10 +43,18 @@ Application Options:
   -t, --timeout=
       --rlimit-cpu=seconds
       --rlimit-mem=bytes
+  -e, --env=KEY=VALUE
+      --env-file=path
 
 Help Options:
   -h, --help                                         Show this help message
 ```
+
+## custom environment variables
+
+- `-e KEY=VALUE` / `--env=KEY=VALUE` sets an extra environment variable for the CGI process. Repeatable.
+- `--env-file=path` loads extra environment variables from a `.env`-style file (comments, blank lines, quoted values, `export` prefix, etc. — parsed with [joho/godotenv](https://github.com/joho/godotenv)). Repeatable; applied before `--env`.
+- refuses to start the request (500 error) if a key collides with a standard CGI variable (`REQUEST_METHOD`, `SCRIPT_NAME`, `HTTP_*`, etc.) already set by httpcgi, or with a key from an earlier `--env-file`/`--env`.
 
 ## docker
 
