@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -41,15 +42,15 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	mounts := []mount.Mount{}
 	for _, v := range conf.DockerMounts {
 		sp := strings.Split(v, ":")
+		if len(sp) < 2 {
+			slog.Warn("invalid docker-volume spec, skipping", "spec", v)
+			continue
+		}
 		rdonly := false
 		mountType := mount.TypeBind
-		src := ""
-		tgt := ""
+		src := sp[0]
+		tgt := sp[1]
 		opts := ""
-		if len(sp) >= 2 {
-			src = sp[0]
-			tgt = sp[1]
-		}
 		if len(sp) >= 3 {
 			opts = sp[2]
 		}
@@ -104,6 +105,13 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 		}
 	case <-stCh:
 		slog.Debug("docker-done")
+	case <-time.After(conf.Timeout):
+		slog.Warn("timeout")
+		span2.AddEvent("timeout")
+		if killErr := runner.cli.ContainerKill(ctx, cres.ID, "KILL"); killErr != nil {
+			slog.Error("container kill failed", "error", killErr)
+		}
+		return fmt.Errorf("timeout %v", conf.Timeout)
 	}
 	span2.AddEvent("done docker-wait")
 
@@ -116,7 +124,10 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	}
 
 	slog.Debug("docker-stdcopy")
-	stdcopy.StdCopy(stdout, stderr, out)
+	if _, err := stdcopy.StdCopy(stdout, stderr, out); err != nil {
+		slog.Error("stdcopy", "error", err)
+		return err
+	}
 	span2.AddEvent("done docker-stdcopy")
 	return nil
 }
@@ -128,7 +139,7 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string, ctx context.Conte
 		All:            false,
 		ContainerCount: false,
 	}
-	imgs, err := runner.cli.ImageList(context.Background(), imgOpts)
+	imgs, err := runner.cli.ImageList(ctx, imgOpts)
 	span2.AddEvent("done imagelist")
 	if err != nil {
 		span2.SetStatus(codes.Error, "image list")
@@ -144,7 +155,12 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string, ctx context.Conte
 			if !strings.HasSuffix(t, conf.Suffix) {
 				continue
 			}
-			namepart := t[len(conf.BaseDir) : len(t)-len(conf.Suffix)]
+			nameStart := len(conf.BaseDir)
+			nameEnd := len(t) - len(conf.Suffix)
+			if nameEnd < nameStart {
+				continue
+			}
+			namepart := t[nameStart:nameEnd]
 			slog.Debug("namepart", "tag", t, "name", namepart)
 			if namepart == path {
 				span2.SetStatus(codes.Ok, "found")

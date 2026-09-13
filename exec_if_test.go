@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -112,6 +113,23 @@ func (w writer) Write(data []byte) (int, error) {
 
 func (w writer) WriteHeader(statusCode int) {
 	fmt.Fprintf(w, "status code = %d\n", statusCode)
+}
+
+func TestOutputFilterHeaderFormatError(t *testing.T) {
+	t.Parallel()
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	stdout := bytes.NewBufferString("invalid-header-no-colon\nbody\n")
+	status, err := OutputFilter(stdout, w)
+	if err == nil {
+		t.Error("expected error for malformed header line")
+	}
+	if status != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d", status, http.StatusInternalServerError)
+	}
+	if !strings.Contains(bio.String(), "status code = 500") {
+		t.Errorf("client did not receive a response: %q", bio.String())
+	}
 }
 
 func TestRunBy(t *testing.T) {
