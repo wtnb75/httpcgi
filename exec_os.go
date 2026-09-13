@@ -40,7 +40,7 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	slog.Debug("pid", "process", cmd.Process)
 	cmdStdin, cmdStdout, cmdStderr, err := runner.getPipe(cmd)
 	if err != nil {
-		slog.Error("pipe error", "error", err)
+		slog.Error("pipe error", "error", err, "cmd", cmdname)
 		return err
 	}
 	defer cmdStdin.Close()
@@ -51,34 +51,35 @@ func (runner *OsRunner) Run(conf SrvConfig, cmdname string, envvar map[string]st
 	}
 	slog.Debug("starting command", "cmd", cmd)
 	if err := cmd.Start(); err != nil {
+		slog.Error("start", "error", err, "cmd", cmdname)
 		return err
 	}
 	slog.Debug("pid", "process", cmd.Process)
 	defer func() {
 		if err := cmd.Wait(); err != nil {
-			slog.Error("wait", "error", err)
+			slog.Error("wait", "error", err, "cmd", cmdname)
 		}
 	}()
 	var wg sync.WaitGroup
 	wg.Go(func() {
 		if err := DoPipe(stdin, cmdStdin); err != nil {
-			slog.Error("stdin", "error", err)
+			slog.Error("stdin", "error", err, "cmd", cmdname)
 		}
 	})
 	wg.Go(func() {
 		if err := DoPipe(cmdStderr, stderr); err != nil {
-			slog.Error("stderr", "error", err)
+			slog.Error("stderr", "error", err, "cmd", cmdname)
 		}
 	})
 	wg.Go(func() {
 		if err := DoPipe(cmdStdout, stdout); err != nil {
-			slog.Error("stdout", "error", err)
+			slog.Error("stdout", "error", err, "cmd", cmdname)
 		}
 	})
 	if timeoutWait(&wg, conf.Timeout) {
-		slog.Warn("timeout")
+		slog.Warn("timeout", "cmd", cmdname)
 		if err := cmd.Process.Kill(); err != nil {
-			slog.Error("kill failed", "error", err)
+			slog.Error("kill failed", "error", err, "cmd", cmdname)
 		}
 		return fmt.Errorf("timeout %v", conf.Timeout)
 	}
