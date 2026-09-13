@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -113,6 +114,99 @@ func (w writer) Write(data []byte) (int, error) {
 
 func (w writer) WriteHeader(statusCode int) {
 	fmt.Fprintf(w, "status code = %d\n", statusCode)
+}
+
+type runnerErr struct{}
+
+func (runner runnerErr) Run(conf SrvConfig, cmdname string, envvar map[string]string,
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, ctx context.Context) error {
+	return fmt.Errorf("boom: script failed")
+}
+
+func (runner runnerErr) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
+	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
+}
+
+type runnerBadHeader struct{}
+
+func (runner runnerBadHeader) Run(conf SrvConfig, cmdname string, envvar map[string]string,
+	stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, ctx context.Context) error {
+	fmt.Fprintln(stdout, "no-colon-header-line")
+	return nil
+}
+
+func (runner runnerBadHeader) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
+	return splitPathInfo(conf.BaseDir, path, conf.Suffix)
+}
+
+// captureLog swaps the default slog logger for the duration of fn and returns what was logged.
+// Must run without t.Parallel(): other tests in this package call t.Parallel() as their first
+// statement, which pauses them before they log anything, so a non-parallel test runs to
+// completion (including this global swap) before any of them execute their bodies.
+func captureLog(fn func()) string {
+	var buf bytes.Buffer
+	orig := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	defer slog.SetDefault(orig)
+	fn()
+	return buf.String()
+}
+
+func TestRunByLogsRunnerError(t *testing.T) {
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
+	opts.Addr = ":9999"
+	opts.BaseDir = "."
+	runner := runnerErr{}
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	r := http.Request{
+		Method:     http.MethodGet,
+		RemoteAddr: "127.0.0.1:9999",
+		URL:        u,
+		Proto:      "tcp",
+		RequestURI: "/exec_if_test.go",
+	}
+	logs := captureLog(func() {
+		_ = RunBy(opts, runner, &w, &r)
+	})
+	if !strings.Contains(logs, "boom: script failed") {
+		t.Errorf("log does not contain the runner error: %s", logs)
+	}
+	if !strings.Contains(logs, "script=") {
+		t.Errorf("log does not identify which script failed: %s", logs)
+	}
+	if !strings.Contains(logs, "remote-addr=127.0.0.1:9999") {
+		t.Errorf("log does not identify the requesting client: %s", logs)
+	}
+}
+
+func TestRunByLogsOutputFilterError(t *testing.T) {
+	opts := SrvConfig{}
+	opts.Timeout = time.Duration(1000_000_000)
+	opts.Addr = ":9999"
+	opts.BaseDir = "."
+	runner := runnerBadHeader{}
+	bio := bytes.NewBufferString("")
+	w := writer{out: bio}
+	u, _ := url.Parse("http://hello.world.example.com/exec_if_test.go/hello/world?a=b&c=123")
+	r := http.Request{
+		Method:     http.MethodGet,
+		RemoteAddr: "127.0.0.1:9999",
+		URL:        u,
+		Proto:      "tcp",
+		RequestURI: "/exec_if_test.go",
+	}
+	logs := captureLog(func() {
+		_ = RunBy(opts, runner, &w, &r)
+	})
+	if !strings.Contains(logs, "script=") {
+		t.Errorf("output filter error log does not identify which script failed: %s", logs)
+	}
+	if !strings.Contains(logs, "remote-addr=127.0.0.1:9999") {
+		t.Errorf("output filter error log does not identify the requesting client: %s", logs)
+	}
 }
 
 func TestOutputFilterHeaderFormatError(t *testing.T) {

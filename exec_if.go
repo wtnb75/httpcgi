@@ -165,7 +165,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	wg.Go(func() {
 		code, err := OutputFilter(pr, w)
 		if err != nil {
-			slog.Error("output filter", "error", err)
+			slog.Error("output filter", "error", err, "script", bn2, "remote-addr", r.RemoteAddr)
 		}
 		outputStatus = code
 		span.AddEvent("ofilter finished")
@@ -183,6 +183,7 @@ func RunBy(opts SrvConfig, runner Runner, w http.ResponseWriter, r *http.Request
 	err = runner.Run(opts, bn2, env, r.Body, pw, log.Writer(), ctx)
 	span2.End()
 	if err != nil {
+		slog.Error("runner error", "error", err, "script", bn2, "method", r.Method, "remote-addr", r.RemoteAddr)
 		span.SetStatus(codes.Error, "exec error")
 		httpStatus = http.StatusInternalServerError
 		w.WriteHeader(httpStatus)

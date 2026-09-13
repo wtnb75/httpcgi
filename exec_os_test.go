@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -77,6 +78,32 @@ func TestOsRun(t *testing.T) {
 	}
 	if stderr.Len() != 0 {
 		t.Error("out", stderr.String())
+	}
+}
+
+func TestOsRunStartErrorLogged(t *testing.T) {
+	runner := OsRunner{}
+	conf := SrvConfig{}
+	conf.Timeout = time.Duration(1000_000_000)
+	tmpd, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Fatal("tmpdir", err)
+	}
+	defer os.RemoveAll(tmpd)
+	conf.BaseDir = tmpd
+	ctx := context.Background()
+	env := map[string]string{}
+	stdin := io.NopCloser(&bytes.Buffer{})
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	logs := captureLog(func() {
+		err = runner.Run(conf, "does-not-exist", env, stdin, stdout, stderr, ctx)
+	})
+	if err == nil {
+		t.Fatal("expected error for a command that cannot start")
+	}
+	if !strings.Contains(logs, "cmd=does-not-exist") {
+		t.Errorf("log does not identify which command failed to start: %s", logs)
 	}
 }
 
