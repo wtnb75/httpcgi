@@ -10,11 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/moby/moby/api/pkg/stdcopy"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/client"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -85,34 +84,37 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 			NanoCPUs: int64(conf.DockerCPUs * 1e9),
 		},
 	}
-	cres, err := runner.cli.ContainerCreate(ctx, &contConfig, &hostConfig, nil, nil, "")
+	cres, err := runner.cli.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Config:     &contConfig,
+		HostConfig: &hostConfig,
+	})
 	span2.AddEvent("done docker-create")
 	if err != nil {
 		slog.Error("containerCreate", "error", err)
 		return err
 	}
-	defer runner.cli.ContainerRemove(ctx, cres.ID, container.RemoveOptions{})
+	defer runner.cli.ContainerRemove(ctx, cres.ID, client.ContainerRemoveOptions{})
 	slog.Debug("docker-start")
-	if err = runner.cli.ContainerStart(ctx, cres.ID, container.StartOptions{}); err != nil {
+	if _, err = runner.cli.ContainerStart(ctx, cres.ID, client.ContainerStartOptions{}); err != nil {
 		slog.Error("containerStart", "error", err)
 		return err
 	}
 	span2.AddEvent("done docker-start")
 	slog.Debug("docker-wait")
-	stCh, errCh := runner.cli.ContainerWait(ctx, cres.ID, container.WaitConditionNotRunning)
+	wres := runner.cli.ContainerWait(ctx, cres.ID, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
 	select {
-	case err := <-errCh:
+	case err := <-wres.Error:
 		if err != nil {
 			slog.Error("execute error", "error", err)
 			span2.AddEvent("execute error")
 			return err
 		}
-	case <-stCh:
+	case <-wres.Result:
 		slog.Debug("docker-done")
 	case <-time.After(conf.Timeout):
 		slog.Warn("timeout")
 		span2.AddEvent("timeout")
-		if killErr := runner.cli.ContainerKill(ctx, cres.ID, "KILL"); killErr != nil {
+		if _, killErr := runner.cli.ContainerKill(ctx, cres.ID, client.ContainerKillOptions{Signal: "KILL"}); killErr != nil {
 			slog.Error("container kill failed", "error", killErr)
 		}
 		return fmt.Errorf("timeout %v", conf.Timeout)
@@ -120,7 +122,7 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 	span2.AddEvent("done docker-wait")
 
 	slog.Debug("docker-logs")
-	out, err := runner.cli.ContainerLogs(ctx, cres.ID, container.LogsOptions{ShowStdout: true})
+	out, err := runner.cli.ContainerLogs(ctx, cres.ID, client.ContainerLogsOptions{ShowStdout: true})
 	span2.AddEvent("done docker-logs")
 	if err != nil {
 		slog.Error("logs error", "error", err)
@@ -139,9 +141,8 @@ func (runner DockerRunner) Run(conf SrvConfig, cmdname string, envvar map[string
 func (runner DockerRunner) Exists(conf SrvConfig, path string, ctx context.Context) (string, string, error) {
 	_, span2 := otel.Tracer("").Start(ctx, "docker-exists")
 	defer span2.End()
-	imgOpts := image.ListOptions{
-		All:            false,
-		ContainerCount: false,
+	imgOpts := client.ImageListOptions{
+		All: false,
 	}
 	imgs, err := runner.cli.ImageList(ctx, imgOpts)
 	span2.AddEvent("done imagelist")
@@ -151,7 +152,7 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string, ctx context.Conte
 		return "", "", err
 	}
 	var name, pathinfo string
-	for _, i := range imgs {
+	for _, i := range imgs.Items {
 		for _, t := range i.RepoTags {
 			if !strings.HasPrefix(t, conf.BaseDir) {
 				continue
@@ -186,7 +187,7 @@ func (runner DockerRunner) Exists(conf SrvConfig, path string, ctx context.Conte
 
 func init() {
 	runnerMap["docker"] = func(SrvConfig) Runner {
-		cl, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+		cl, err := client.New(client.FromEnv)
 		if err != nil {
 			slog.Error("docker client", "error", err)
 			panic(fmt.Sprintf("docker client error: %s", err))

@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
 	"github.com/golang/mock/gomock"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/image"
+	"github.com/moby/moby/client"
 	"github.com/wtnb75/httpcgi/mock_client"
 )
 
@@ -21,11 +22,11 @@ func TestDockerExists(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	cli := mock_client.NewMockAPIClient(ctrl)
-	images := []image.Summary{
-		image.Summary{
+	images := client.ImageListResult{Items: []image.Summary{
+		{
 			RepoTags: []string{"base/tag123:v1.0.0", "xyz/tag234:latest", "base/path1:latest"},
 		},
-	}
+	}}
 	runner := DockerRunner{cli: cli}
 	conf := SrvConfig{}
 	conf.Timeout = time.Duration(1000_000_000)
@@ -79,9 +80,9 @@ func TestDockerExistsOverlappingPrefixSuffix(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	cli := mock_client.NewMockAPIClient(ctrl)
-	images := []image.Summary{
-		image.Summary{RepoTags: []string{"aab"}},
-	}
+	images := client.ImageListResult{Items: []image.Summary{
+		{RepoTags: []string{"aab"}},
+	}}
 	cli.EXPECT().ImageList(gomock.Any(), gomock.Any()).Return(images, nil)
 	runner := DockerRunner{cli: cli}
 	conf := SrvConfig{}
@@ -119,7 +120,7 @@ func TestDockerExistsUsesRequestContext(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	cli := mock_client.NewMockAPIClient(ctrl)
-	images := []image.Summary{}
+	images := client.ImageListResult{}
 	ctx := context.WithValue(context.Background(), ctxTestKey, "hello")
 	cli.EXPECT().ImageList(ctxHasValueMatcher{key: ctxTestKey, val: "hello"}, gomock.Any()).Return(images, nil)
 	runner := DockerRunner{cli: cli}
@@ -132,7 +133,7 @@ func TestDockerExistsAPIError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	cli := mock_client.NewMockAPIClient(ctrl)
-	images := []image.Summary{}
+	images := client.ImageListResult{}
 	cli.EXPECT().ImageList(gomock.Any(), gomock.Any()).Return(images, fmt.Errorf("error"))
 	runner := DockerRunner{cli: cli}
 	conf := SrvConfig{}
@@ -163,13 +164,13 @@ func TestDockerRunStdCopyError(t *testing.T) {
 	stdin := io.NopCloser(bytes.NewBufferString(""))
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	cres := container.CreateResponse{ID: "id123"}
-	cli.EXPECT().ContainerCreate(gomock.Any(), gomock.Any(), gomock.Any(), nil, nil, "").Return(cres, nil)
-	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(nil)
-	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(nil)
+	cres := client.ContainerCreateResult{ID: "id123"}
+	cli.EXPECT().ContainerCreate(gomock.Any(), gomock.Any()).Return(cres, nil)
+	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerRemoveResult{}, nil)
+	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerStartResult{}, nil)
 	ch_exit := make(chan container.WaitResponse, 1)
 	ch_err := make(chan error, 1)
-	cli.EXPECT().ContainerWait(gomock.Any(), "id123", container.WaitConditionNotRunning).Return(ch_exit, ch_err)
+	cli.EXPECT().ContainerWait(gomock.Any(), "id123", client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning}).Return(client.ContainerWaitResult{Result: ch_exit, Error: ch_err})
 	// malformed multiplexed stream: unrecognized stdcopy stream-type byte (valid values are 0-3)
 	badFrame := []byte{99, 0, 0, 0, 0, 0, 0, 0}
 	output := io.NopCloser(bytes.NewBuffer(badFrame))
@@ -193,15 +194,15 @@ func TestDockerRunTimeout(t *testing.T) {
 	stdin := io.NopCloser(bytes.NewBufferString(""))
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	cres := container.CreateResponse{ID: "id123"}
-	cli.EXPECT().ContainerCreate(gomock.Any(), gomock.Any(), gomock.Any(), nil, nil, "").Return(cres, nil)
-	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(nil)
-	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(nil)
+	cres := client.ContainerCreateResult{ID: "id123"}
+	cli.EXPECT().ContainerCreate(gomock.Any(), gomock.Any()).Return(cres, nil)
+	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerRemoveResult{}, nil)
+	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerStartResult{}, nil)
 	// never signaled: simulates a hung container
 	ch_exit := make(chan container.WaitResponse)
 	ch_err := make(chan error)
-	cli.EXPECT().ContainerWait(gomock.Any(), "id123", container.WaitConditionNotRunning).Return(ch_exit, ch_err)
-	cli.EXPECT().ContainerKill(gomock.Any(), "id123", gomock.Any()).Return(nil)
+	cli.EXPECT().ContainerWait(gomock.Any(), "id123", client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning}).Return(client.ContainerWaitResult{Result: ch_exit, Error: ch_err})
+	cli.EXPECT().ContainerKill(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerKillResult{}, nil)
 	err := runner.Run(conf, "path1", envs, stdin, stdout, stderr, context.Background())
 	if err == nil {
 		t.Error("expected timeout error, got nil")
@@ -211,10 +212,11 @@ func TestDockerRunTimeout(t *testing.T) {
 type hostConfigNoMountsMatcher struct{}
 
 func (hostConfigNoMountsMatcher) Matches(x any) bool {
-	hc, ok := x.(*container.HostConfig)
-	if !ok {
+	opts, ok := x.(client.ContainerCreateOptions)
+	if !ok || opts.HostConfig == nil {
 		return false
 	}
+	hc := opts.HostConfig
 	return len(hc.Mounts) == 0
 }
 
@@ -235,13 +237,13 @@ func TestDockerRunInvalidVolumeSpecIgnored(t *testing.T) {
 	stdin := io.NopCloser(bytes.NewBufferString(""))
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	cres := container.CreateResponse{ID: "id123"}
-	cli.EXPECT().ContainerCreate(gomock.Any(), gomock.Any(), hostConfigNoMountsMatcher{}, nil, nil, "").Return(cres, nil)
-	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(nil)
-	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(nil)
+	cres := client.ContainerCreateResult{ID: "id123"}
+	cli.EXPECT().ContainerCreate(gomock.Any(), hostConfigNoMountsMatcher{}).Return(cres, nil)
+	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerRemoveResult{}, nil)
+	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerStartResult{}, nil)
 	ch_exit := make(chan container.WaitResponse, 1)
 	ch_err := make(chan error, 1)
-	cli.EXPECT().ContainerWait(gomock.Any(), "id123", container.WaitConditionNotRunning).Return(ch_exit, ch_err)
+	cli.EXPECT().ContainerWait(gomock.Any(), "id123", client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning}).Return(client.ContainerWaitResult{Result: ch_exit, Error: ch_err})
 	output := io.NopCloser(bytes.NewBuffer(nil))
 	cli.EXPECT().ContainerLogs(gomock.Any(), "id123", gomock.Any()).Return(output, nil)
 	ch_exit <- container.WaitResponse{}
@@ -257,10 +259,11 @@ type hostConfigResourcesMatcher struct {
 }
 
 func (m hostConfigResourcesMatcher) Matches(x any) bool {
-	hc, ok := x.(*container.HostConfig)
-	if !ok {
+	opts, ok := x.(client.ContainerCreateOptions)
+	if !ok || opts.HostConfig == nil {
 		return false
 	}
+	hc := opts.HostConfig
 	return hc.Resources.Memory == m.memory && hc.Resources.NanoCPUs == m.nanoCPUs
 }
 
@@ -282,16 +285,16 @@ func TestDockerRunSetsResourceLimits(t *testing.T) {
 	stdin := io.NopCloser(bytes.NewBufferString(""))
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	cres := container.CreateResponse{ID: "id123"}
+	cres := client.ContainerCreateResult{ID: "id123"}
 	cli.EXPECT().ContainerCreate(
-		gomock.Any(), gomock.Any(),
+		gomock.Any(),
 		hostConfigResourcesMatcher{memory: 134217728, nanoCPUs: 1_500_000_000},
-		nil, nil, "").Return(cres, nil)
-	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(nil)
-	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(nil)
+	).Return(cres, nil)
+	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerRemoveResult{}, nil)
+	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerStartResult{}, nil)
 	ch_exit := make(chan container.WaitResponse, 1)
 	ch_err := make(chan error, 1)
-	cli.EXPECT().ContainerWait(gomock.Any(), "id123", container.WaitConditionNotRunning).Return(ch_exit, ch_err)
+	cli.EXPECT().ContainerWait(gomock.Any(), "id123", client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning}).Return(client.ContainerWaitResult{Result: ch_exit, Error: ch_err})
 	output := io.NopCloser(bytes.NewBuffer(nil))
 	cli.EXPECT().ContainerLogs(gomock.Any(), "id123", gomock.Any()).Return(output, nil)
 	ch_exit <- container.WaitResponse{}
@@ -314,13 +317,13 @@ func TestDockerRun(t *testing.T) {
 	stdin := io.NopCloser(bytes.NewBufferString("hello"))
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	cres := container.CreateResponse{ID: "id123"}
-	cli.EXPECT().ContainerCreate(gomock.Any(), gomock.Any(), gomock.Any(), nil, nil, "").Return(cres, nil)
-	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(nil)
-	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(nil)
+	cres := client.ContainerCreateResult{ID: "id123"}
+	cli.EXPECT().ContainerCreate(gomock.Any(), gomock.Any()).Return(cres, nil)
+	cli.EXPECT().ContainerRemove(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerRemoveResult{}, nil)
+	cli.EXPECT().ContainerStart(gomock.Any(), "id123", gomock.Any()).Return(client.ContainerStartResult{}, nil)
 	ch_exit := make(chan container.WaitResponse, 1)
 	ch_err := make(chan error, 1)
-	cli.EXPECT().ContainerWait(gomock.Any(), "id123", container.WaitConditionNotRunning).Return(ch_exit, ch_err)
+	cli.EXPECT().ContainerWait(gomock.Any(), "id123", client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning}).Return(client.ContainerWaitResult{Result: ch_exit, Error: ch_err})
 	buf := []byte{}
 	output := io.NopCloser(bytes.NewBuffer(buf))
 	cli.EXPECT().ContainerLogs(gomock.Any(), "id123", gomock.Any()).Return(output, nil)
