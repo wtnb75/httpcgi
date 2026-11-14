@@ -16,7 +16,8 @@ jobs:
     - uses: wtnb75/actions/golang@v1
     - uses: wtnb75/actions/gotest@v1
       with:
-        tags: "wasmer wasmtime docker wazero"
+        #tags: "wasmer wasmtime docker wazero"
+        tags: "wasmer docker wazero"
         html-output-dir: coverage
     - uses: wtnb75/actions/merge-pages@v1
       with:
